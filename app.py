@@ -6,7 +6,7 @@ from datetime import datetime
 from french_logic import get_french_bot_result
 
 # Streamlit이 로컬의 secrets.toml 파일을 읽어서 토큰을 가져옵니다.
-GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
+GITHUB_TOKEN = st.secrets.get("GITHUB_TOKEN", "")
 
 import streamlit as st
 
@@ -328,10 +328,10 @@ def render_messages(history):
 
 # --- [수정] LLM 호출 함수 ---
 # app.py 내의 call_llm 함수를 아래처럼 통째로 바꾸세요.
-def call_llm(subject, prompt):
+def call_llm(subject, history):
     if subject == "프랑스어":
         # 반드시 텍스트와 이미지를 둘 다 리턴함
-        ans_text, ans_image = get_french_bot_result(prompt, GITHUB_TOKEN)
+        ans_text, ans_image = get_french_bot_result(history, GITHUB_TOKEN)
         return ans_text, ans_image
     
     # [수정] 다른 과목도 'None'을 추가해서 두 개를 리턴하게 만듭니다.
