@@ -1,4 +1,4 @@
-"""NewLearn Streamlit 앱: 초기 챗봇 UI + 동일 톤 랜딩 페이지."""
+﻿"""NewLearn Streamlit 앱: 초기 챗봇 UI + 동일 톤 랜딩 페이지."""
 
 from datetime import datetime
 
@@ -237,8 +237,8 @@ button[kind="header"]{{display:none!important}}
     .landing-footer{{flex-direction:column;align-items:flex-start}}
 }}
 </style>
-""",
-    unsafe_allow_html=True,
+    """,
+        unsafe_allow_html=True,
     )
 
 
@@ -392,8 +392,8 @@ def render_chat():
     <div class="chat-messages">{render_messages(history)}</div>
   </div>
 </div>
-""",
-                unsafe_allow_html=True,
+    """,
+        unsafe_allow_html=True,
     )
 
     if prompt := st.chat_input(f"{subject}에 대해 질문하세요..."):
