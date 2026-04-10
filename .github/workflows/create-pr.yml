@@ -1,0 +1,32 @@
+name: Create PR from Copilot Branch
+
+on:
+  push:
+    branches:
+      - 'copilot/**'
+  workflow_dispatch:
+
+jobs:
+  create-pull-request:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create Pull Request
+        uses: repo-sync/pull-request@v2
+        with:
+          source_branch: "${{ github.ref_name }}" # 현재 브랜치 명시
+          destination_branch: "main"
+          pr_title: "🤖 [Draft] Copilot: ${{ github.ref_name }}"
+          pr_body: |
+            ## 🤖 Copilot 자동 생성 PR
+            이 PR은 `copilot/` 브랜치에서 자동으로 생성되었습니다.
+            - **수정자:** @${{ github.actor }}
+            
+            > **안내:** 동료분들의 확인을 돕기 위해 Draft(초안) 상태로 PR을 먼저 생성했습니다. 
+            > 내용 확인 후 준비가 되었다면 `Ready for review`를 눌러주세요! 😊
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          update_existing: true
+          pr_draft: true
+          labels: "copilot, auto-pr"
