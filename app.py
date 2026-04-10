@@ -6,7 +6,7 @@ from datetime import datetime
 from french_logic import get_french_bot_result
 
 # Streamlit이 로컬의 secrets.toml 파일을 읽어서 토큰을 가져옵니다.
-GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
+GITHUB_TOKEN = st.secrets.get("GITHUB_TOKEN", "")
 
 import streamlit as st
 
