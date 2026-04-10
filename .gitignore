@@ -14,3 +14,4 @@ build/
 
 # IDE 설정
 .vscode/
+.streamlit/

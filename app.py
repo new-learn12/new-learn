@@ -1,6 +1,12 @@
 ﻿"""NewLearn Streamlit 앱: 초기 챗봇 UI + 동일 톤 랜딩 페이지."""
+import streamlit as st
+import streamlit.components.v1 as components # 이 줄을 반드시 추가하십시오.
 
 from datetime import datetime
+from french_logic import get_french_bot_result
+
+# Streamlit이 로컬의 secrets.toml 파일을 읽어서 토큰을 가져옵니다.
+GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
 
 import streamlit as st
 
@@ -53,13 +59,16 @@ def now():
     return f"{d.hour}:{d.minute:02d}"
 
 
+# app.py 내의 get_history 함수 내부를 이렇게 확인하세요.
 def get_history(subject):
     if subject not in st.session_state.histories:
+        welcome = next((s["welcome"] for s in SUBJECTS if s["name"] == subject), "")
         st.session_state.histories[subject] = [
             {
-                "role": "bot",
-                "content": SUBJECT_INFO[subject]["welcome"],
-                "time": "",
+                "role": "bot", 
+                "content": welcome, 
+                "time": now(),
+                "image": None  # <--- 이 줄이 반드시 있어야 합니다!
             }
         ]
     return st.session_state.histories[subject]
@@ -240,16 +249,76 @@ button[kind="header"]{{display:none!important}}
     """,
         unsafe_allow_html=True,
     )
+# --- 여기서부터 아래 내용을 함수 안쪽 끝에 붙여넣으세요 (들여쓰기 4칸) ---
+    st.markdown("""
+<script>
+function speak(text) {
+// 혹시라도 이미 말하고 있다면 멈추기
+window.speechSynthesis.cancel();
+const utterance = new SpeechSynthesisUtterance(text);
+utterance.lang = 'fr-FR';  // 프랑스어 설정
+utterance.rate = 0.9;      // 학습을 위해 속도를 약간 천천히 (선택사항)
+// 에러 확인용 로그 (브라우저 F12 개발자 도구에서 확인 가능)
+utterance.onerror = function(event) {
+console.error('TTS 에러 발생:', event.error);
+};
 
+window.speechSynthesis.speak(utterance);
+}
+</script>
+                
+<style>
+.tts-btn {
+margin-left: 8px;
+cursor: pointer;
+border: none;
+background: #e8f0fb;
+border-radius: 50%;
+width: 24px;
+height: 24px;
+font-size: 12px;
+}
+.chat-img {
+width: 100%;
+border-radius: 10px;
+margin-top: 8px;
+border: 1px solid #eee;
+}
+</style>
+""", unsafe_allow_html=True)
 
+# --- [수정] 메시지 렌더링 함수 ---
 def render_messages(history):
     rows = []
     for msg in history:
         t = msg.get("time", "")
         c = msg["content"]
+        img = msg.get("image") # 이미지 정보 가져오기
+        
         if msg["role"] == "bot":
+            # 프랑스어 문장이 있으면 TTS 버튼 생성
+            tts_html = ""
+
+            # 기존 try-except 블록을 아래 코드로 통째로 교체하십시오.
+            if "프랑스어 문장:" in c:
+                try:
+                    fr_text = c.split("프랑스어 문장:")[1].split("<br>")[0].split("\n")[0].strip()
+                    # HTML 속성 충돌을 막기 위해 따옴표 처리
+                    fr_text_safe = fr_text.replace('"', '&quot;') 
+                    # onclick 대신 data-text 속성 사용
+                    tts_html = f'<button class="tts-btn" data-text="{fr_text_safe}">🔊</button>'
+                except: 
+                    pass
+            
+                
+                
+                
+            
+            # 이미지 태그 생성
+            img_html = f'<img src="{img}" class="chat-img">' if img else ""
+            
             rows.append(
-                f'<div class="msg-row"><div class="avatar avatar-bot">봇</div><div><div class="bubble bubble-bot">{c}</div><div class="msg-time">{t}</div></div></div>'
+                f'<div class="msg-row"><div class="avatar avatar-bot">봇</div><div><div class="bubble bubble-bot">{c}{tts_html}{img_html}</div><div class="msg-time">{t}</div></div></div>'
             )
         else:
             rows.append(
@@ -257,22 +326,16 @@ def render_messages(history):
             )
     return "\n".join(rows)
 
-
-def call_llm(subject, history):
-    """
-    OpenAI 연동 예시:
-        from openai import OpenAI
-        client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-        msgs = [{"role": "system", "content": f"{subject} 전문 튜터입니다."}]
-        for h in history:
-            role = "assistant" if h["role"] == "bot" else "user"
-            msgs.append({"role": role, "content": h["content"]})
-        res = client.chat.completions.create(model="gpt-4o-mini", temperature=0.7, messages=msgs)
-        return res.choices[0].message.content
-    """
-    last = history[-1]["content"]
-    short = f'{last[:40]}{"..." if len(last) > 40 else ""}'
-    return f'"{short}"에 대한 답변입니다.<br>{subject} 맥락에 맞춰 LLM이 응답합니다.'
+# --- [수정] LLM 호출 함수 ---
+# app.py 내의 call_llm 함수를 아래처럼 통째로 바꾸세요.
+def call_llm(subject, prompt):
+    if subject == "프랑스어":
+        # 반드시 텍스트와 이미지를 둘 다 리턴함
+        ans_text, ans_image = get_french_bot_result(prompt, GITHUB_TOKEN)
+        return ans_text, ans_image
+    
+    # [수정] 다른 과목도 'None'을 추가해서 두 개를 리턴하게 만듭니다.
+    return f"현재 {subject} 학습봇은 준비 중입니다.", None
 
 
 def render_landing():
@@ -395,12 +458,52 @@ def render_chat():
     """,
         unsafe_allow_html=True,
     )
+    # --- 여기서부터 아래 코드를 새로 추가하십시오 ---
+    # --- 여기서부터 아래 코드를 새로 추가/수정하십시오 ---
+    components.html("""
+    <script>
+    const parentDoc = window.parent.document;
+    
+    function attachEvents() {
+        // 부모 창에서 이벤트가 아직 연결되지 않은 버튼만 찾음 (중복 연결 방지)
+        const buttons = parentDoc.querySelectorAll('.tts-btn:not(.bound)');
+        
+        buttons.forEach(btn => {
+            btn.classList.add('bound'); // 연결 완료 표시
+            
+            btn.addEventListener('click', function() {
+                const text = this.getAttribute('data-text');
+                if(text) {
+                    window.parent.speechSynthesis.cancel();
+                    const utterance = new window.parent.SpeechSynthesisUtterance(text);
+                    utterance.lang = 'fr-FR';
+                    utterance.rate = 0.9;
+                    window.parent.speechSynthesis.speak(utterance);
+                }
+            });
+        });
+    }
+    
+    // 즉시 실행 및 0.5초(500ms)마다 새로 생긴 버튼이 있는지 반복 감지
+    attachEvents();
+    setInterval(attachEvents, 500);
+    </script>
+    """, width=0, height=0)
+    # --- 추가 끝 ---
 
     if prompt := st.chat_input(f"{subject}에 대해 질문하세요..."):
         history.append({"role": "user", "content": prompt, "time": now()})
+    
         with st.spinner("답변 생성 중..."):
-            response = call_llm(subject, history)
-        history.append({"role": "bot", "content": response, "time": now()})
+            # 수정 지점: history 대신 prompt(문자열)를 전달함
+            response, ans_image = call_llm(subject, prompt)
+
+        history.append({
+            "role": "bot", 
+            "content": response.replace("\n", "<br>"), 
+            "image": ans_image, # 이미지 URL 저장
+            "time": now()
+        })
         st.rerun()
 
 
