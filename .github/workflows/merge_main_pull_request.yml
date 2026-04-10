@@ -1,0 +1,27 @@
+name: PR & Main Branch Verification
+
+on:
+  pull_request:
+    branches: ["main"]
+  push:
+    branches: ["main"]
+
+jobs:
+  # 코드 스타일과 문법 오류 체크
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+        cache-dependency-path: requirements.txt
+
+    - name: Run Flake8
+      run: |
+        pip install flake8
+        # --max-line-length=120: 한 줄 길이를 넉넉하게 120자로 설정 
+        # E302, E305: 함수/클래스 간 빈 줄 2개 강제 규칙 제외
+        # E501: 줄 길이 초과 시 에러 발생 제외 (가이드라인으로만 활용)
+        flake8 . --count --show-source --statistics --max-line-length=120 --extend-ignore=E203,W503,E302,E305,E501
