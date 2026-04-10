@@ -1,6 +1,6 @@
 ﻿"""NewLearn Streamlit 앱: 초기 챗봇 UI + 동일 톤 랜딩 페이지."""
 import streamlit as st
-import streamlit.components.v1 as components # 이 줄을 반드시 추가하십시오.
+import streamlit.components.v1 as components  # 이 줄을 반드시 추가하십시오.
 
 from datetime import datetime
 from french_logic import get_french_bot_result
@@ -8,7 +8,6 @@ from french_logic import get_french_bot_result
 # Streamlit이 로컬의 secrets.toml 파일을 읽어서 토큰을 가져옵니다.
 GITHUB_TOKEN = st.secrets.get("GITHUB_TOKEN", "")
 
-import streamlit as st
 
 st.set_page_config(
     page_title="NewLearn",
@@ -17,38 +16,32 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-SUBJECTS = [
-    {
-        "name": "역사",
-        "icon": "🏺",
-        "desc": "시대별 사건, 사료 해석, 비교사 관점까지 핵심만 빠르게 정리합니다.",
-        "welcome": "안녕하세요! <b>역사</b> 학습봇입니다.<br>시대 흐름 정리, 사건 비교, 사료 해석까지 함께 공부해요.",
-    },
-    {
-        "name": "일본어",
-        "icon": "🗾",
-        "desc": "문법, 독해, 회화 표현을 단계별로 연습하고 실전 예문을 제공합니다.",
-        "welcome": "안녕하세요! <b>일본어</b> 학습봇입니다.<br>문법 설명, 회화 표현, JLPT 스타일 문제까지 도와드릴게요.",
-    },
-    {
-        "name": "프랑스어",
-        "icon": "🥖",
-        "desc": "기초 문법부터 작문 첨삭까지 학습 수준에 맞춘 설명을 제공합니다.",
-        "welcome": "안녕하세요! <b>프랑스어</b> 학습봇입니다.<br>기초 문법, 발음 포인트, 작문 첨삭까지 단계별로 안내합니다.",
-    },
-    {
-        "name": "심리학",
-        "icon": "🧠",
-        "desc": "주요 이론, 실험 설계, 논문 읽기 포인트를 쉽게 연결해 줍니다.",
-        "welcome": "안녕하세요! <b>심리학</b> 학습봇입니다.<br>핵심 이론, 고전 실험, 연구 설계 포인트를 쉽게 정리해 드려요.",
-    },
-    {
-        "name": "반도체",
-        "icon": "🧩",
-        "desc": "소자 물리, 공정 흐름, 회로 기본 개념을 사례 중심으로 학습합니다.",
-        "welcome": "안녕하세요! <b>반도체</b> 학습봇입니다.<br>소자 물리, 공정 단계, 회로 기초를 실제 사례 중심으로 설명해 드립니다.",
-    },
-]
+SUBJECTS = [{"name": "역사",
+             "icon": "🏺",
+             "desc": "시대별 사건, 사료 해석, 비교사 관점까지 핵심만 빠르게 정리합니다.",
+             "welcome": "안녕하세요! <b>역사</b> 학습봇입니다.<br>시대 흐름 정리, 사건 비교, 사료 해석까지 함께 공부해요.",
+             },
+            {"name": "일본어",
+             "icon": "🗾",
+             "desc": "문법, 독해, 회화 표현을 단계별로 연습하고 실전 예문을 제공합니다.",
+             "welcome": "안녕하세요! <b>일본어</b> 학습봇입니다.<br>문법 설명, 회화 표현, JLPT 스타일 문제까지 도와드릴게요.",
+             },
+            {"name": "프랑스어",
+             "icon": "🥖",
+             "desc": "기초 문법부터 작문 첨삭까지 학습 수준에 맞춘 설명을 제공합니다.",
+             "welcome": "안녕하세요! <b>프랑스어</b> 학습봇입니다.<br>기초 문법, 발음 포인트, 작문 첨삭까지 단계별로 안내합니다.",
+             },
+            {"name": "심리학",
+             "icon": "🧠",
+             "desc": "주요 이론, 실험 설계, 논문 읽기 포인트를 쉽게 연결해 줍니다.",
+             "welcome": "안녕하세요! <b>심리학</b> 학습봇입니다.<br>핵심 이론, 고전 실험, 연구 설계 포인트를 쉽게 정리해 드려요.",
+             },
+            {"name": "반도체",
+             "icon": "🧩",
+             "desc": "소자 물리, 공정 흐름, 회로 기본 개념을 사례 중심으로 학습합니다.",
+             "welcome": "안녕하세요! <b>반도체</b> 학습봇입니다.<br>소자 물리, 공정 단계, 회로 기초를 실제 사례 중심으로 설명해 드립니다.",
+             },
+            ]
 
 SUBJECT_INFO = {subject["name"]: subject for subject in SUBJECTS}
 SUBJECT_NAMES = list(SUBJECT_INFO.keys())
@@ -62,11 +55,12 @@ def now():
 # app.py 내의 get_history 함수 내부를 이렇게 확인하세요.
 def get_history(subject):
     if subject not in st.session_state.histories:
-        welcome = next((s["welcome"] for s in SUBJECTS if s["name"] == subject), "")
+        welcome = next((s["welcome"]
+                       for s in SUBJECTS if s["name"] == subject), "")
         st.session_state.histories[subject] = [
             {
-                "role": "bot", 
-                "content": welcome, 
+                "role": "bot",
+                "content": welcome,
                 "time": now(),
                 "image": None  # <--- 이 줄이 반드시 있어야 합니다!
             }
@@ -266,7 +260,7 @@ console.error('TTS 에러 발생:', event.error);
 window.speechSynthesis.speak(utterance);
 }
 </script>
-                
+
 <style>
 .tts-btn {
 margin-left: 8px;
@@ -288,13 +282,15 @@ border: 1px solid #eee;
 """, unsafe_allow_html=True)
 
 # --- [수정] 메시지 렌더링 함수 ---
+
+
 def render_messages(history):
     rows = []
     for msg in history:
         t = msg.get("time", "")
         c = msg["content"]
-        img = msg.get("image") # 이미지 정보 가져오기
-        
+        img = msg.get("image")  # 이미지 정보 가져오기
+
         if msg["role"] == "bot":
             # 프랑스어 문장이 있으면 TTS 버튼 생성
             tts_html = ""
@@ -302,21 +298,18 @@ def render_messages(history):
             # 기존 try-except 블록을 아래 코드로 통째로 교체하십시오.
             if "프랑스어 문장:" in c:
                 try:
-                    fr_text = c.split("프랑스어 문장:")[1].split("<br>")[0].split("\n")[0].strip()
+                    fr_text = c.split("프랑스어 문장:")[1].split(
+                        "<br>")[0].split("\n")[0].strip()
                     # HTML 속성 충돌을 막기 위해 따옴표 처리
-                    fr_text_safe = fr_text.replace('"', '&quot;') 
+                    fr_text_safe = fr_text.replace('"', '&quot;')
                     # onclick 대신 data-text 속성 사용
                     tts_html = f'<button class="tts-btn" data-text="{fr_text_safe}">🔊</button>'
-                except: 
+                except BaseException:
                     pass
-            
-                
-                
-                
-            
+
             # 이미지 태그 생성
             img_html = f'<img src="{img}" class="chat-img">' if img else ""
-            
+
             rows.append(
                 f'<div class="msg-row"><div class="avatar avatar-bot">봇</div><div><div class="bubble bubble-bot">{c}{tts_html}{img_html}</div><div class="msg-time">{t}</div></div></div>'
             )
@@ -328,12 +321,14 @@ def render_messages(history):
 
 # --- [수정] LLM 호출 함수 ---
 # app.py 내의 call_llm 함수를 아래처럼 통째로 바꾸세요.
+
+
 def call_llm(subject, history):
     if subject == "프랑스어":
         # 반드시 텍스트와 이미지를 둘 다 리턴함
         ans_text, ans_image = get_french_bot_result(history, GITHUB_TOKEN)
         return ans_text, ans_image
-    
+
     # [수정] 다른 과목도 'None'을 추가해서 두 개를 리턴하게 만듭니다.
     return f"현재 {subject} 학습봇은 준비 중입니다.", None
 
@@ -358,16 +353,26 @@ def render_landing():
 
     cta_col1, cta_col2 = st.columns([1, 1])
     with cta_col1:
-        if st.button("챗봇 시작하기", key="landing_chat_start", type="primary", use_container_width=True):
+        if st.button(
+            "챗봇 시작하기",
+            key="landing_chat_start",
+            type="primary",
+                use_container_width=True):
             st.session_state.page = "chat"
             st.session_state.histories.pop(st.session_state.subject, None)
             sync_query_params()
             st.rerun()
     with cta_col2:
-        if st.button("자세히 보기", key="landing_detail", use_container_width=True, type="secondary"):
+        if st.button(
+            "자세히 보기",
+            key="landing_detail",
+            use_container_width=True,
+                type="secondary"):
             st.info("아래 과목을 선택하면 해당 과목 챗봇으로 바로 시작됩니다.")
 
-    st.markdown('<p class="hero-btn-note">원하는 전공 카드를 선택하면 해당 챗봇으로 즉시 이동합니다.</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="hero-btn-note">원하는 전공 카드를 선택하면 해당 챗봇으로 즉시 이동합니다.</p>',
+        unsafe_allow_html=True)
 
     st.markdown(
         """
@@ -392,7 +397,10 @@ def render_landing():
 """,
                 unsafe_allow_html=True,
             )
-            if st.button(f"{subject['name']} 시작", key=f"start_{subject['name']}", use_container_width=True):
+            if st.button(
+                f"{subject['name']} 시작",
+                key=f"start_{subject['name']}",
+                    use_container_width=True):
                 st.session_state.subject = subject["name"]
                 st.session_state.page = "chat"
                 st.session_state.histories.pop(subject["name"], None)
@@ -422,7 +430,10 @@ def render_chat():
             unsafe_allow_html=True,
         )
 
-        if st.button("← 랜딩 페이지", key="btn_go_landing", use_container_width=True):
+        if st.button(
+            "← 랜딩 페이지",
+            key="btn_go_landing",
+                use_container_width=True):
             st.session_state.page = "landing"
             sync_query_params()
             st.rerun()
@@ -463,14 +474,14 @@ def render_chat():
     components.html("""
     <script>
     const parentDoc = window.parent.document;
-    
+
     function attachEvents() {
         // 부모 창에서 이벤트가 아직 연결되지 않은 버튼만 찾음 (중복 연결 방지)
         const buttons = parentDoc.querySelectorAll('.tts-btn:not(.bound)');
-        
+
         buttons.forEach(btn => {
             btn.classList.add('bound'); // 연결 완료 표시
-            
+
             btn.addEventListener('click', function() {
                 const text = this.getAttribute('data-text');
                 if(text) {
@@ -483,7 +494,7 @@ def render_chat():
             });
         });
     }
-    
+
     // 즉시 실행 및 0.5초(500ms)마다 새로 생긴 버튼이 있는지 반복 감지
     attachEvents();
     setInterval(attachEvents, 500);
@@ -493,15 +504,15 @@ def render_chat():
 
     if prompt := st.chat_input(f"{subject}에 대해 질문하세요..."):
         history.append({"role": "user", "content": prompt, "time": now()})
-    
+
         with st.spinner("답변 생성 중..."):
             # 수정 지점: history 대신 prompt(문자열)를 전달함
             response, ans_image = call_llm(subject, prompt)
 
         history.append({
-            "role": "bot", 
-            "content": response.replace("\n", "<br>"), 
-            "image": ans_image, # 이미지 URL 저장
+            "role": "bot",
+            "content": response.replace("\n", "<br>"),
+            "image": ans_image,  # 이미지 URL 저장
             "time": now()
         })
         st.rerun()
