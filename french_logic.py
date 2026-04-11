@@ -11,11 +11,11 @@ embedder = SentenceTransformer('jhgan/ko-sroberta-multitask')
 def load_data(file_path):
     try:
         return pd.read_csv(file_path, encoding='utf-8')
-    except:
+    except Exception:
         return pd.read_csv(file_path, encoding='cp949')
 
 df = load_data('french.csv')
-df['korean'] = df['korean'].fillna("") 
+df['korean'] = df['korean'].fillna("")
 df['french'] = df['french'].fillna("")
 
 # 코퍼스 벡터화
@@ -37,7 +37,7 @@ def search_hybrid(query):
     scores = util.cos_sim(q_emb, corpus_embeddings)[0]
     best_idx = torch.argmax(scores).item()
     
-    if scores[best_idx].item() > 0.65: 
+    if scores[best_idx].item() > 0.65:
         return df.iloc[best_idx]
     
     return None
@@ -45,12 +45,11 @@ def search_hybrid(query):
 # 3. LLM 연동 및 결과 반환 함수
 def get_french_bot_result(user_query):
     # 클라우드 서버(DigitalOcean)의 환경 변수에서 안전하게 키를 꺼내오는 방식
-    MY_OPENAI_KEY = os.environ.get("OPENAI_API_KEY", "") 
+    MY_OPENAI_KEY = os.environ.get("OPENAI_API_KEY", "")
     
     # 만약 서버에 키가 세팅 안 되어 있으면 에러 방지용 안내문 출력
     if not MY_OPENAI_KEY:
         return "시스템 오류: 서버에 OpenAI API 키가 설정되지 않았습니다. 관리자에게 문의하세요.", None
-    ...
 
     matched = search_hybrid(user_query)
     
@@ -64,7 +63,7 @@ def get_french_bot_result(user_query):
     [입문자 눈높이 해설]
     - 발음 팁과 파리 여행에서의 실제 쓰임새 설명
     
-    주의사항: 
+    주의사항:
     - 절대 대괄호 앞에 숫자(1. 2. 등)를 붙이지 마세요.
     - 불필요한 줄바꿈을 남발하지 말고 촘촘하게 작성하세요."""
 
@@ -89,7 +88,7 @@ def get_french_bot_result(user_query):
         가장 먼저 이 질문에 해당하는 번역된 문장을 제시하고 해설해주세요.
         반드시 답변의 첫 줄을 '프랑스어 문장: [번역된 프랑스어]' 형식으로 시작하세요.
         """
-        prefix = "" 
+        prefix = ""
 
     try:
         client = OpenAI(api_key=MY_OPENAI_KEY)
@@ -98,9 +97,9 @@ def get_french_bot_result(user_query):
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            model="gpt-4o", 
-            temperature=0.5, 
-            top_p=0.8,       
+            model="gpt-4o",
+            temperature=0.5,
+            top_p=0.8,
             max_tokens=1000,
         )
         llm_explanation = response.choices[0].message.content.strip()

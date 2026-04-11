@@ -1,5 +1,5 @@
 ﻿import streamlit as st
-import streamlit.components.v1 as components  
+import streamlit.components.v1 as components
 from datetime import datetime
 import re
 from french_logic import get_french_bot_result
@@ -12,14 +12,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# 2. 보안 환경 변수 가져오기
-try:
-    # DigitalOcean 등 서버에서 세팅한 토큰을 가져옵니다.
-    GITHUB_TOKEN = st.secrets.get("GITHUB_TOKEN", "")
-except Exception:
-    GITHUB_TOKEN = ""
-
-# 3. 과목 데이터 정의
+# 2. 과목 데이터 정의
 SUBJECTS = [
     {"name": "역사", "icon": "🏺", "desc": "시대별 사건, 사료 해석, 비교사 관점까지 핵심만 빠르게 정리합니다.", "welcome": "안녕하세요! <b>역사</b> 학습봇입니다.<br>시대 흐름 정리, 사건 비교, 사료 해석까지 함께 공부해요."},
     {"name": "일본어", "icon": "🗾", "desc": "문법, 독해, 회화 표현을 단계별로 연습하고 실전 예문을 제공합니다.", "welcome": "안녕하세요! <b>일본어</b> 학습봇입니다.<br>문법 설명, 회화 표현, JLPT 스타일 문제까지 도와드릴게요."},
@@ -96,9 +89,8 @@ button[kind="header"]{{display:none!important}}
 def render_messages(history):
     rows = []
     for msg in history:
-        t = msg.get("time", "")
         c = msg["content"]
-        img = msg.get("image")  
+        img = msg.get("image")
         c_display = c.strip()
         c_display = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', c_display)
         c_display = re.sub(r'\n+', '\n', c_display).replace('\n[', '\n\n[')
@@ -111,7 +103,8 @@ def render_messages(history):
                     parts = c.split("프랑스어 문장:")
                     fr_text = parts[1].split('\n')[0].strip().replace('"', '&quot;')
                     tts_html = f'<div style="margin-top:10px;"><button class="tts-btn" data-text="{fr_text}" data-lang="fr-FR">🇫🇷 발음 듣기</button></div>'
-                except: pass
+                except Exception:
+                    pass
             img_html = f'<img src="{img}" style="margin-top:8px; max-width:250px; border-radius:10px; display:block;">' if img else ""
             rows.append(f'<div style="display:flex; gap:10px; margin-bottom:16px;"><div class="bubble bubble-bot">{c_display}{tts_html}{img_html}</div></div>')
         else:
@@ -123,8 +116,8 @@ def render_messages(history):
 def call_llm(subject, history):
     prompt = history[-1]["content"]
     if subject == "프랑스어":
-        # 최신 하이브리드 검색 및 이미지 반환 로직 호출
         return get_french_bot_result(prompt)
+    # 오류가 났던 지점 수정 완료 (None 반환)
     return f"현재 {subject} 학습봇은 준비 중입니다.", None
 
 def render_landing():
@@ -147,6 +140,38 @@ def render_chat():
     history = get_history(subject)
     st.markdown(f"### {subject} 학습 세션")
     st.markdown(render_messages(history), unsafe_allow_html=True)
+
+    components.html("""
+    <script>
+    function attachEvents() {
+        try {
+            const parentDoc = window.parent.document;
+            const buttons = parentDoc.querySelectorAll('.tts-btn:not(.bound)');
+
+            buttons.forEach(btn => {
+                btn.classList.add('bound'); 
+
+                btn.addEventListener('click', function() {
+                    const text = this.getAttribute('data-text');
+                    const lang = this.getAttribute('data-lang');
+                    
+                    if(text) {
+                        window.parent.speechSynthesis.cancel();
+                        const utterance = new window.parent.SpeechSynthesisUtterance(text);
+                        utterance.lang = lang; 
+                        utterance.rate = 0.9;
+                        utterance.volume = 1.0;
+                        window.parent.speechSynthesis.speak(utterance);
+                    }
+                });
+            });
+        } catch (e) {}
+    }
+
+    attachEvents();
+    setInterval(attachEvents, 500);
+    </script>
+    """, width=0, height=0)
 
     if prompt := st.chat_input(f"{subject}에 대해 질문하세요..."):
         history.append({"role": "user", "content": prompt, "time": now()})
