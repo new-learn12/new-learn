@@ -16,7 +16,7 @@ import re
 import pdfplumber
 
 # ── 경로 설정 ──────────────────────────────────────────────────────────────
-_BASE_DIR     = os.path.dirname(os.path.abspath(__file__))
+_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 _SUMMARY_PATH = os.path.join(_BASE_DIR, "chapter_summaries.json")
 
 # PDF 파일 위치: app.py와 같은 폴더 안 'pdfs/' 서브폴더가 기본값
