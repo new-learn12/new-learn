@@ -44,7 +44,7 @@ new-learn/
 
 | 분야 | 사용 모델 |
 | :--- | :--- |
-| 프랑스어 | [TODO: 모델 확인 필요] |
+| 프랑스어 | OpenAI GPT-4o, SentenceTransformers (jhgan/ko-sroberta-multitask) |
 | 일본어 | Google Gemini 1.5 Flash, Helsinki-NLP (Asymmetric Pipeline) |
 | 심리 | [TODO: 모델 확인 필요] |
 | 역사 | [TODO: 모델 확인 필요] |
