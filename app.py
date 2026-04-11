@@ -1,23 +1,10 @@
-﻿# NewLearn Streamlit 앱: 초기 챗봇 UI + 동일 톤 랜딩 페이지.
-import streamlit as st
-import streamlit.components.v1 as components  # 이 줄을 반드시 추가하십시오.
+﻿import streamlit as st
+import streamlit.components.v1 as components  
 from datetime import datetime
+import re
 from french_logic import get_french_bot_result
 
-# 1. 환경 변수 안전하게 가져오기
-try:
-    GITHUB_TOKEN = st.secrets.get("GITHUB_TOKEN", "")
-except Exception:
-    GITHUB_TOKEN = ""
-
-# 2. 페이지 설정 (이 함수는 반드시 다른 st 명령보다 먼저 나와야 합니다)
-st.set_page_config(
-    page_title="NewLearn",
-    page_icon="📖",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
-
+# 페이지 설정
 st.set_page_config(
     page_title="NewLearn",
     page_icon="📖",
@@ -55,32 +42,26 @@ SUBJECTS = [{"name": "역사",
 SUBJECT_INFO = {subject["name"]: subject for subject in SUBJECTS}
 SUBJECT_NAMES = list(SUBJECT_INFO.keys())
 
-
 def now():
     d = datetime.now()
     return f"{d.hour}:{d.minute:02d}"
 
-
-# app.py 내의 get_history 함수 내부를 이렇게 확인하세요.
 def get_history(subject):
     if subject not in st.session_state.histories:
-        welcome = next((s["welcome"]
-                       for s in SUBJECTS if s["name"] == subject), "")
+        welcome = next((s["welcome"] for s in SUBJECTS if s["name"] == subject), "")
         st.session_state.histories[subject] = [
             {
                 "role": "bot",
                 "content": welcome,
                 "time": now(),
-                "image": None  # <--- 이 줄이 반드시 있어야 합니다!
+                "image": None 
             }
         ]
     return st.session_state.histories[subject]
 
-
 def sync_query_params():
     st.query_params["view"] = st.session_state.page
     st.query_params["subject"] = st.session_state.subject
-
 
 def init_state():
     if "subject" not in st.session_state:
@@ -99,13 +80,11 @@ def init_state():
     if query_subject in SUBJECT_NAMES:
         st.session_state.subject = query_subject
     if query_start == "1" and st.session_state.subject in st.session_state.histories:
-        # 랜딩에서 과목을 눌러 진입하면 해당 과목 대화를 새로 시작한다.
         st.session_state.histories.pop(st.session_state.subject, None)
         try:
             del st.query_params["start"]
         except Exception:
             pass
-
 
 def inject_styles(current_page):
     sidebar_visibility = "display:none!important;" if current_page == "landing" else ""
@@ -139,7 +118,7 @@ button[kind="header"]{{display:none!important}}
 
 [data-testid="stSidebar"]{{{sidebar_visibility}background:#f8f9fa!important;border-right:1px solid #e9ecef;min-width:220px!important;max-width:220px!important}}
 [data-testid="stSidebar"]>div:first-child{{padding:0!important}}
-[data-testid="stSidebar"] .stButton>button{{display:flex!important;align-items:center!important;gap:10px!important;padding:8px 10px!important;border-radius:8px!important;font-size:13px!important;color:#495057!important;margin-bottom:2px!important;border:none!important;background:none!important;width:100%!important;text-align:left!important;box-shadow:none!important;font-family:'Noto Sans KR',sans-serif!important;font-weight:400!important;justify-content:flex-start!important}}
+[data-testid="stSidebar"] .stButton>button{{display:flex!important;align-items:center!important;gap:10px!important;padding:8px 10px!important;border-radius:8px!important;font-size:14px!important;color:#495057!important;margin-bottom:2px!important;border:none!important;background:none!important;width:100%!important;text-align:left!important;box-shadow:none!important;font-family:'Noto Sans KR',sans-serif!important;font-weight:400!important;justify-content:flex-start!important}}
 [data-testid="stSidebar"] .stButton>button:hover{{background:#e9ecef!important}}
 [data-testid="stSidebar"] .stButton>button[kind="primary"]{{background:#e8f0fb!important;color:#185FA5!important;font-weight:500!important}}
 
@@ -170,13 +149,13 @@ button[kind="header"]{{display:none!important}}
 }}
 .badge-pill{{display:inline-block;background:#deecff;color:#174f87;font-size:11px;font-weight:700;padding:5px 13px;border-radius:999px}}
 .hero h1{{margin:14px 0 10px;font-size:36px;line-height:1.23;letter-spacing:-.6px;color:var(--nl-text)}}
-.hero p{{margin:0 auto;color:var(--nl-muted);font-size:14px;line-height:1.85;max-width:760px}}
-.hero-btn-note{{margin-top:10px;color:#6d7f93;font-size:12px}}
+.hero p{{margin:0 auto;color:var(--nl-muted);font-size:15px;line-height:1.85;max-width:760px}}
+.hero-btn-note{{margin-top:10px;color:#6d7f93;font-size:13px}}
 .btn-row{{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:20px}}
 
 .section-cards{{padding:18px 2px 4px}}
 .section-cards h2{{font-size:25px;text-align:center;margin:0 0 5px;letter-spacing:-.35px;color:var(--nl-text)}}
-.section-cards .sub{{text-align:center;color:#6d7f93;font-size:13px;margin-bottom:16px}}
+.section-cards .sub{{text-align:center;color:#6d7f93;font-size:14px;margin-bottom:16px}}
 .edu-card{{
     background:linear-gradient(180deg,#ffffff 0%, #f8fbff 100%);
     border:1px solid #deebf7;
@@ -188,7 +167,7 @@ button[kind="header"]{{display:none!important}}
 .edu-card:hover{{transform:translateY(-2px);box-shadow:0 11px 24px rgba(19,68,114,.11)}}
 .icon-wrap{{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:8px;background:#e7f1ff}}
 .edu-card h5{{margin:0 0 6px;font-size:16px;color:#17385e}}
-.edu-card p{{margin:0;color:#5c7288;font-size:12.5px;line-height:1.72}}
+.edu-card p{{margin:0;color:#5c7288;font-size:13.5px;line-height:1.72}}
 .landing-footer{{
     margin-top:12px;
     border-top:1px solid #dbe8f7;
@@ -222,18 +201,21 @@ button[kind="header"]{{display:none!important}}
 .app-wrapper{{display:flex;width:100%;height:78vh;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.1);background:#fff}}
 .chat-area{{flex:1;display:flex;flex-direction:column;min-width:0;background:#fff}}
 .chat-header{{padding:14px 20px;border-bottom:1px solid #e9ecef;display:flex;align-items:center;gap:10px;flex-shrink:0}}
-.badge-subject{{background:#e8f0fb;color:#185fa5;font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px}}
+.badge-subject{{background:#e8f0fb;color:#185fa5;font-size:12px;font-weight:500;padding:3px 10px;border-radius:20px}}
 .chat-messages{{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px}}
 .msg-row{{display:flex;gap:10px;align-items:flex-end}}
 .msg-row.user{{flex-direction:row-reverse}}
-.avatar{{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}}
+.avatar{{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}}
 .avatar-bot{{background:#e8f0fb;color:#185fa5}}
 .avatar-user{{background:#e8f5e9;color:#2e7d32}}
-.bubble{{max-width:72%;padding:10px 14px;font-size:13px;line-height:1.65;color:#212529}}
+
+/* [핵심 수정] 글씨 크기를 15.5px로 더 상향, 줄 간격 압축 */
+.bubble{{max-width:75%;padding:14px 18px;font-size:15.5px;line-height:1.6;color:#212529; white-space: pre-wrap; word-break: break-word;}}
+
 .bubble-bot{{background:#f8f9fa;border-radius:4px 14px 14px 14px;max-width:200%}}
 .bubble-user{{background:#185fa5;color:#fff;border-radius:14px 4px 14px 14px;max-width:200%}}
-.msg-time{{font-size:10px;color:#adb5bd;margin:2px 4px 0}}
-[data-testid="stChatInput"] textarea{{border-radius:12px!important;border:1px solid #dee2e6!important;font-family:'Noto Sans KR',sans-serif!important;font-size:13px!important}}
+.msg-time{{font-size:11px;color:#adb5bd;margin:2px 4px 0}}
+[data-testid="stChatInput"] textarea{{border-radius:12px!important;border:1px solid #dee2e6!important;font-family:'Noto Sans KR',sans-serif!important;font-size:14px!important}}
 [data-testid="stChatInput"] textarea:focus{{border-color:#185fa5!important;box-shadow:0 0 0 2px rgba(24,95,165,.12)!important}}
 [data-testid="stChatInput"] button{{background:#185fa5!important;border-radius:10px!important}}
 [data-testid="stChatInput"]{{padding:8px 16px!important}}
@@ -252,45 +234,28 @@ button[kind="header"]{{display:none!important}}
     """,
         unsafe_allow_html=True,
     )
-# --- 여기서부터 아래 내용을 함수 안쪽 끝에 붙여넣으세요 (들여쓰기 4칸) ---
+    
     st.markdown("""
-<script>
-function speak(text) {
-// 혹시라도 이미 말하고 있다면 멈추기
-window.speechSynthesis.cancel();
-const utterance = new SpeechSynthesisUtterance(text);
-utterance.lang = 'fr-FR';  // 프랑스어 설정
-utterance.rate = 0.9;      // 학습을 위해 속도를 약간 천천히 (선택사항)
-// 에러 확인용 로그 (브라우저 F12 개발자 도구에서 확인 가능)
-utterance.onerror = function(event) {
-console.error('TTS 에러 발생:', event.error);
-};
-
-window.speechSynthesis.speak(utterance);
-}
-</script>
-
 <style>
 .tts-btn {
-margin-left: 8px;
-cursor: pointer;
-border: none;
-background: #e8f0fb;
-border-radius: 50%;
-width: 24px;
-height: 24px;
-font-size: 12px;
+    cursor: pointer;
+    border: 1px solid #dce6f2;
+    background: #f8fbff;
+    color: #185fa5;
+    border-radius: 20px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    transition: 0.2s ease;
 }
-.chat-img {
-width: 100%;
-border-radius: 10px;
-margin-top: 8px;
-border: 1px solid #eee;
+.tts-btn:hover {
+    background: #e8f0fb;
+    border-color: #185fa5;
 }
 </style>
 """, unsafe_allow_html=True)
-
-# --- [수정] 메시지 렌더링 함수 ---
 
 
 def render_messages(history):
@@ -298,51 +263,65 @@ def render_messages(history):
     for msg in history:
         t = msg.get("time", "")
         c = msg["content"]
-        img = msg.get("image")  # 이미지 정보 가져오기
+        img = msg.get("image")  
+
+        # [핵심 수정] 텍스트 간격 압축기 (Squash)
+        c_display = c.strip()
+        c_display = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', c_display) # 굵은 글씨
+        c_display = re.sub(r'\d+\.\s*\[', '[', c_display) # "1. [문법" 같은 쓸데없는 숫자 강제 삭제
+        
+        # 모든 연속된 엔터(줄바꿈)를 무조건 1개로 압축해버림
+        c_display = re.sub(r'\n+', '\n', c_display) 
+        # 단, [문법 조립 블록] 같은 대목차 시작할 때만 숨통을 트기 위해 엔터 2개로 복구
+        c_display = c_display.replace('\n[', '\n\n[')
+        
+        # 텍스트가 예쁘게 정렬되도록 프랑스어 문장 타이틀 굵게 처리
+        c_display = c_display.replace('프랑스어 문장:', '<b>프랑스어 문장:</b>')
 
         if msg["role"] == "bot":
-            # 프랑스어 문장이 있으면 TTS 버튼 생성
             tts_html = ""
-
-            # 기존 try-except 블록을 아래 코드로 통째로 교체하십시오.
-            if "프랑스어 문장:" in c:
+            if "프랑스어 문장:" in c: # 원본 텍스트 c를 기준으로 TTS 분리
                 try:
-                    fr_text = c.split("프랑스어 문장:")[1].split(
-                        "<br>")[0].split("\n")[0].strip()
-                    # HTML 속성 충돌을 막기 위해 따옴표 처리
+                    parts = c.split("프랑스어 문장:")
+                    after_prefix = parts[1].strip()
+                    
+                    fr_text = after_prefix.split('\n')[0].strip()
+                    ko_text_raw = after_prefix[len(fr_text):].strip()
+                    
+                    ko_text_clean = re.sub(r'<[^>]+>', ' ', ko_text_raw)
+                    ko_text_clean = ko_text_clean.replace('*', '').replace('-', '').replace('\n', ' ')
+                    
                     fr_text_safe = fr_text.replace('"', '&quot;')
-                    # onclick 대신 data-text 속성 사용
-                    tts_html = f'<button class="tts-btn" data-text="{fr_text_safe}">🔊</button>'
+                    ko_text_safe = ko_text_clean.replace('"', '&quot;')
+
+                    tts_html = f'''
+                    <div style="margin-top:10px; margin-bottom:2px; display:flex; gap:8px; flex-wrap:wrap;">
+                        <button class="tts-btn" data-text="{fr_text_safe}" data-lang="fr-FR">🇫🇷 불어 발음 듣기</button>
+                        <button class="tts-btn" data-text="{ko_text_safe}" data-lang="ko-KR">🇰🇷 한글 설명 듣기</button>
+                    </div>
+                    '''
                 except BaseException:
                     pass
 
-            # 이미지 태그 생성
-            img_html = f'<img src="{img}" class="chat-img">' if img else ""
+            img_html = f'<img src="{img}" class="chat-img" style="margin-top: 8px; max-width: 250px; width: 100%; border-radius: 10px; border: 1px solid #eee; display: block;">' if img else ""
 
             rows.append(
-                f'<div class="msg-row"><div class="avatar avatar-bot">봇</div><div><div class="bubble bubble-bot">{c}{tts_html}{img_html}</div><div class="msg-time">{t}</div></div></div>'
+                f'<div class="msg-row"><div class="avatar avatar-bot">봇</div><div><div class="bubble bubble-bot" style="padding-bottom:12px;">{c_display}{tts_html}{img_html}</div><div class="msg-time">{t}</div></div></div>'
             )
         else:
             rows.append(
-                f'<div class="msg-row user"><div class="avatar avatar-user">나</div><div><div class="bubble bubble-user">{c}</div><div class="msg-time" style="text-align:right">{t}</div></div></div>'
+                f'<div class="msg-row user"><div class="avatar avatar-user">나</div><div><div class="bubble bubble-user">{c_display}</div><div class="msg-time" style="text-align:right">{t}</div></div></div>'
             )
     return "\n".join(rows)
 
-# --- [수정] LLM 호출 함수 ---
-# app.py 내의 call_llm 함수를 아래처럼 통째로 바꾸세요.
 
-
-# 함수 전체를 이 내용으로 교체하세요
 def call_llm(subject, history):
-    # history(리스트)의 마지막 항목에서 질문 내용(prompt)을 추출합니다.
     prompt = history[-1]["content"]
 
     if subject == "프랑스어":
-        # french_logic에서 텍스트와 이미지를 모두 가져옵니다.
-        ans_text, ans_image = get_french_bot_result(prompt, GITHUB_TOKEN)
+        ans_text, ans_image = get_french_bot_result(prompt)
         return ans_text, ans_image
     
-    # 다른 과목도 에러 방지를 위해 None을 함께 리턴합니다.
     return f"현재 {subject} 학습봇은 준비 중입니다.", None
 
 
@@ -452,7 +431,7 @@ def render_chat():
             st.rerun()
 
         st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
-
+        
         for subject in SUBJECTS:
             name = subject["name"]
             is_active = st.session_state.subject == name
@@ -482,25 +461,24 @@ def render_chat():
     """,
         unsafe_allow_html=True,
     )
-    # --- 여기서부터 아래 코드를 새로 추가하십시오 ---
-    # --- 여기서부터 아래 코드를 새로 추가/수정하십시오 ---
+    
     components.html("""
     <script>
     const parentDoc = window.parent.document;
 
     function attachEvents() {
-        // 부모 창에서 이벤트가 아직 연결되지 않은 버튼만 찾음 (중복 연결 방지)
         const buttons = parentDoc.querySelectorAll('.tts-btn:not(.bound)');
 
         buttons.forEach(btn => {
-            btn.classList.add('bound'); // 연결 완료 표시
+            btn.classList.add('bound'); 
 
             btn.addEventListener('click', function() {
                 const text = this.getAttribute('data-text');
+                const lang = this.getAttribute('data-lang');
                 if(text) {
                     window.parent.speechSynthesis.cancel();
                     const utterance = new window.parent.SpeechSynthesisUtterance(text);
-                    utterance.lang = 'fr-FR';
+                    utterance.lang = lang; 
                     utterance.rate = 0.9;
                     window.parent.speechSynthesis.speak(utterance);
                 }
@@ -508,24 +486,22 @@ def render_chat():
         });
     }
 
-    // 즉시 실행 및 0.5초(500ms)마다 새로 생긴 버튼이 있는지 반복 감지
     attachEvents();
     setInterval(attachEvents, 500);
     </script>
     """, width=0, height=0)
-    # --- 추가 끝 ---
 
     if prompt := st.chat_input(f"{subject}에 대해 질문하세요..."):
+            
         history.append({"role": "user", "content": prompt, "time": now()})
 
         with st.spinner("답변 생성 중..."):
-            # 수정 지점: history 대신 prompt(문자열)를 전달함
             response, ans_image = call_llm(subject, history)
 
         history.append({
             "role": "bot",
-            "content": response.replace("\n", "<br>"),
-            "image": ans_image,  # 이미지 URL 저장
+            "content": response,
+            "image": ans_image, 
             "time": now()
         })
         st.rerun()

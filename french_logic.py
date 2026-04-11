@@ -1,57 +1,113 @@
 import pandas as pd
-import re
+import torch
+from sentence_transformers import SentenceTransformer, util
+from openai import OpenAI
+import os
 
-# 1. 파일 로드: 전역 변수(df)로 CSV 파일을 한 번만 읽어옵니다.
-try:
-    df = pd.read_csv('french.csv')
-except Exception as e:
-    print(f"CSV 파일 로드 실패. 파일 이름과 위치를 확인하세요: {e}")
-    df = None
+# 1. 모델 및 데이터 로드
+print("임베딩 모델 및 데이터 로딩 중...")
+embedder = SentenceTransformer('jhgan/ko-sroberta-multitask')
 
-def find_french_phrase(user_query, df):
-    # 데이터가 정상적으로 로드되지 않았을 경우를 대비한 방어 코드
-    if df is None:
-        return None
-        
-    # 사용자 입력값 전처리 (특수문자 및 공백 제거, 소문자 강제 변환)
-    query = re.sub(r'[?.!, ]', '', str(user_query)).lower()
+def load_data(file_path):
+    try:
+        return pd.read_csv(file_path, encoding='utf-8')
+    except:
+        return pd.read_csv(file_path, encoding='cp949')
+
+df = load_data('french.csv')
+df['korean'] = df['korean'].fillna("") 
+df['french'] = df['french'].fillna("")
+
+# 코퍼스 벡터화
+df['combined'] = df['korean'] + " " + df['french']
+corpus_embeddings = embedder.encode(df['combined'].tolist(), convert_to_tensor=True)
+print("데이터베이스 벡터화 완료!")
+
+# 2. 하이브리드 검색 로직
+def search_hybrid(query):
+    query_clean = str(query).lower().strip()
     
-    # 데이터프레임을 순회하며 비교
-    for index, row in df.iterrows():
-        # A. 프랑스어('french' 열)로 입력했을 때의 검색
-        if 'french' in row and pd.notna(row['french']):
-            db_french = re.sub(r'[?.!, ]', '', str(row['french'])).lower()
-            if query == db_french:
-                return row
-        
-        # B. 한국어('korean' 열) 뜻으로 입력했을 때의 검색
-        if 'korean' in row and pd.notna(row['korean']):
-            db_korean = re.sub(r'[?.!, ]', '', str(row['korean'])).lower()
-            if query == db_korean:
-                return row
-                
-    return None # 일치하는 항목이 없을 경우
+    for i, row in df.iterrows():
+        f_val = str(row['french']).lower()
+        k_val = str(row['korean']).lower()
+        if query_clean in f_val or query_clean in k_val:
+            return row
 
-def get_french_bot_result(user_query, github_token):
-    # 전역 변수 df를 사용하여 검색 함수 호출
-    matched = find_french_phrase(user_query, df)
+    q_emb = embedder.encode(query, convert_to_tensor=True)
+    scores = util.cos_sim(q_emb, corpus_embeddings)[0]
+    best_idx = torch.argmax(scores).item()
     
-    if matched is not None: # 검색 결과가 있다면
-        # 실제 존재하는 열의 데이터를 변수에 저장
+    if scores[best_idx].item() > 0.65: 
+        return df.iloc[best_idx]
+    
+    return None
+
+# 3. LLM 연동 및 결과 반환 함수
+def get_french_bot_result(user_query):
+    # 클라우드 서버(DigitalOcean)의 환경 변수에서 안전하게 키를 꺼내오는 방식
+    MY_OPENAI_KEY = os.environ.get("OPENAI_API_KEY", "") 
+    
+    # 만약 서버에 키가 세팅 안 되어 있으면 에러 방지용 안내문 출력
+    if not MY_OPENAI_KEY:
+        return "시스템 오류: 서버에 OpenAI API 키가 설정되지 않았습니다. 관리자에게 문의하세요.", None
+    ...
+
+    matched = search_hybrid(user_query)
+    
+    # [핵심 수정] 숫자(1. 2.)를 절대 쓰지 못하게 억제하고 템플릿을 고정함
+    system_prompt = """당신은 'NEW LEARN' 플랫폼의 왕초보 전용 프랑스어 선생님입니다.
+    사용자에게 다음 형식에 맞춰 '초개인화 해설'을 제공하세요.
+    
+    [문법 조립 블록]
+    - 문장을 단어별로 쪼개고 뜻 설명 (예: Je(나) - 주어)
+    
+    [입문자 눈높이 해설]
+    - 발음 팁과 파리 여행에서의 실제 쓰임새 설명
+    
+    주의사항: 
+    - 절대 대괄호 앞에 숫자(1. 2. 등)를 붙이지 마세요.
+    - 불필요한 줄바꿈을 남발하지 말고 촘촘하게 작성하세요."""
+
+    if matched is not None:
         french_text = matched['french']
         korean_text = matched['korean']
         pronunciation = matched['pronunciation']
+        ans_image = matched['image_url'] if 'image_url' in matched and pd.notna(matched['image_url']) else None
         
-        # 이미지가 없는 경우를 대비한 처리 (NaN 값 방지)
-        if 'image_url' in matched and pd.notna(matched['image_url']):
-            ans_image = matched['image_url']
-        else:
-            ans_image = None
-            
-        # UI(app.py)에서 '프랑스어 문장:' 이라는 키워드로 TTS 음성을 추출하므로, 반드시 해당 텍스트를 포함해야 함
-        ans_text = f"프랑스어 문장: {french_text}\n<br>뜻: {korean_text}\n<br>발음: {pronunciation}"
+        user_prompt = f"""
+        [데이터베이스 정보]
+        - 문장: {french_text}
+        - 뜻: {korean_text}
+        - 발음: {pronunciation}
+        """
+        prefix = f"프랑스어 문장: {french_text}\n"
         
-        return ans_text, ans_image
+    else:
+        ans_image = None
+        user_prompt = f"""
+        데이터베이스에 없는 내용입니다. 사용자의 질문: '{user_query}'
+        가장 먼저 이 질문에 해당하는 번역된 문장을 제시하고 해설해주세요.
+        반드시 답변의 첫 줄을 '프랑스어 문장: [번역된 프랑스어]' 형식으로 시작하세요.
+        """
+        prefix = "" 
+
+    try:
+        client = OpenAI(api_key=MY_OPENAI_KEY)
+        response = client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            model="gpt-4o", 
+            temperature=0.5, 
+            top_p=0.8,       
+            max_tokens=1000,
+        )
+        llm_explanation = response.choices[0].message.content.strip()
         
-    else: # 검색 결과가 없다면
-        return "죄송합니다. 해당 표현은 아직 제 데이터베이스에 없습니다. 기초적인 인사나 식당 관련 질문을 해주세요"
+    except Exception as e:
+        llm_explanation = f"LLM 답변 생성 중 오류가 발생했습니다: {e}"
+        prefix = f"프랑스어 문장: {user_query}\n"
+
+    final_text = f"{prefix}\n{llm_explanation}" if prefix else llm_explanation
+    return final_text, ans_image
