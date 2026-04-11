@@ -1,13 +1,22 @@
-﻿"""NewLearn Streamlit 앱: 초기 챗봇 UI + 동일 톤 랜딩 페이지."""
+﻿# NewLearn Streamlit 앱: 초기 챗봇 UI + 동일 톤 랜딩 페이지.
 import streamlit as st
 import streamlit.components.v1 as components  # 이 줄을 반드시 추가하십시오.
-
 from datetime import datetime
 from french_logic import get_french_bot_result
 
-# Streamlit이 로컬의 secrets.toml 파일을 읽어서 토큰을 가져옵니다.
-GITHUB_TOKEN = st.secrets.get("GITHUB_TOKEN", "")
+# 1. 환경 변수 안전하게 가져오기
+try:
+    GITHUB_TOKEN = st.secrets.get("GITHUB_TOKEN", "")
+except Exception:
+    GITHUB_TOKEN = ""
 
+# 2. 페이지 설정 (이 함수는 반드시 다른 st 명령보다 먼저 나와야 합니다)
+st.set_page_config(
+    page_title="NewLearn",
+    page_icon="📖",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
 
 st.set_page_config(
     page_title="NewLearn",
@@ -323,13 +332,17 @@ def render_messages(history):
 # app.py 내의 call_llm 함수를 아래처럼 통째로 바꾸세요.
 
 
+# 함수 전체를 이 내용으로 교체하세요
 def call_llm(subject, history):
-    if subject == "프랑스어":
-        # 반드시 텍스트와 이미지를 둘 다 리턴함
-        ans_text, ans_image = get_french_bot_result(history, GITHUB_TOKEN)
-        return ans_text, ans_image
+    # history(리스트)의 마지막 항목에서 질문 내용(prompt)을 추출합니다.
+    prompt = history[-1]["content"]
 
-    # [수정] 다른 과목도 'None'을 추가해서 두 개를 리턴하게 만듭니다.
+    if subject == "프랑스어":
+        # french_logic에서 텍스트와 이미지를 모두 가져옵니다.
+        ans_text, ans_image = get_french_bot_result(prompt, GITHUB_TOKEN)
+        return ans_text, ans_image
+    
+    # 다른 과목도 에러 방지를 위해 None을 함께 리턴합니다.
     return f"현재 {subject} 학습봇은 준비 중입니다.", None
 
 
@@ -507,7 +520,7 @@ def render_chat():
 
         with st.spinner("답변 생성 중..."):
             # 수정 지점: history 대신 prompt(문자열)를 전달함
-            response, ans_image = call_llm(subject, prompt)
+            response, ans_image = call_llm(subject, history)
 
         history.append({
             "role": "bot",
