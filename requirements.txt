@@ -1,3 +1,5 @@
 streamlit
+pandas
+torch
+sentence-transformers
 openai
-datetime
