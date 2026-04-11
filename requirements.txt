@@ -1,5 +1,19 @@
 # --- [웹 인터페이스 및 UI] ---
-streamlit               # 웹 대시보드 및 사용자 인터페이스 구성
+streamlit                # 웹 대시보드 및 사용자 인터페이스 구성
 
 # --- [외부 LLM API 연동] ---
-openai                  # OpenAI (GPT) API 사용
+openai                   # OpenAI (GPT) API 사용
+google-generativeai      # Google Gemini API 사용
+
+# --- [언어 감지 및 번역 파이프라인] ---
+langdetect               # 입력 텍스트의 언어(한국어/일본어 등) 판별
+transformers             # Hugging Face 모델 로드 및 추론
+sentencepiece            # 텍스트 토크나이징을 위한 라이브러리
+
+# --- [일본어 전용 처리 도구] ---
+pykakasi                 # 일본어(한자/가나)를 로마자나 히라가나로 변환
+fugashi                  # 일본어 형태소 분석기 (MeCab 기반)
+unidic-lite              # 일본어 분석을 위한 경량 사전 데이터
+
+# --- [딥러닝 프레임워크] ---
+torch                    # 모델 구동을 위한 핵심 엔진 (PyTorch)

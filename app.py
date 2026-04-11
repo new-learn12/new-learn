@@ -1,8 +1,11 @@
 ﻿"""NewLearn Streamlit 앱: 초기 챗봇 UI + 동일 톤 랜딩 페이지."""
 
+import os
 from datetime import datetime
 
 import streamlit as st
+
+from modules.japanese import AsymmetricTranslator, JapaneseTextProcessor, TaskType, OutputFormat
 
 st.set_page_config(
     page_title="NewLearn",
@@ -77,6 +80,14 @@ def init_state():
         st.session_state.histories = {}
     if "page" not in st.session_state:
         st.session_state.page = "landing"
+    if "translation_mode" not in st.session_state:
+        st.session_state.translation_mode = False
+    if "translation_task" not in st.session_state:
+        st.session_state.translation_task = TaskType.KOREAN_TO_JAPANESE.value
+    if "translation_result" not in st.session_state:
+        st.session_state.translation_result = {}
+    if "translator_error" not in st.session_state:
+        st.session_state.translator_error = None
 
     query_view = st.query_params.get("view")
     query_subject = st.query_params.get("subject")
@@ -93,6 +104,9 @@ def init_state():
             del st.query_params["start"]
         except Exception:
             pass
+
+    if st.session_state.subject != "일본어":
+        st.session_state.translation_mode = False
 
 
 def inject_styles(current_page):
@@ -258,6 +272,177 @@ def render_messages(history):
     return "\n".join(rows)
 
 
+def get_translator():
+    if "translator" in st.session_state and st.session_state.translator is not None:
+        return st.session_state.translator
+
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        return None
+
+    try:
+        st.session_state.translator = AsymmetricTranslator(api_key)
+        return st.session_state.translator
+    except Exception as e:
+        st.session_state.translator = None
+        st.session_state.translator_error = str(e)
+        return None
+
+
+def get_text_processor():
+    if "japanese_processor" in st.session_state and st.session_state.japanese_processor is not None:
+        return st.session_state.japanese_processor
+
+    processor = JapaneseTextProcessor()
+    st.session_state.japanese_processor = processor
+    return processor
+
+
+def run_translation(input_text: str, task_value: str) -> dict:
+    translator = get_translator()
+    if translator is None:
+        return {
+            "task": task_value,
+            "original_text": input_text,
+            "grammar_check": {"is_correct": False, "correction": None},
+            "translated_text": "[GEMINI_API_KEY가 설정되지 않았습니다.]",
+            "style_variations": {},
+            "key_tokens": [],
+            "pronunciation": "",
+            "error": "missing_api_key",
+        }
+
+    try:
+        task_type = TaskType(task_value)
+        return translator.translate(input_text, task_type)
+    except Exception as e:
+        return {
+            "task": task_value,
+            "original_text": input_text,
+            "grammar_check": {"is_correct": False, "correction": None},
+            "translated_text": "[번역 중 오류가 발생했습니다.]",
+            "style_variations": {},
+            "key_tokens": [],
+            "pronunciation": "",
+            "error": str(e),
+        }
+
+
+def render_translation_result(result: dict):
+    if not result:
+        st.info("번역할 문장을 입력해주세요.")
+        return
+
+    grammar = result.get("grammar_check", {})
+    is_correct = grammar.get("is_correct", True)
+    correction = grammar.get("correction")
+
+    if is_correct:
+        st.success("문법 점검: 정상")
+    else:
+        st.warning("문법 점검: 오류 발견")
+
+    if correction is not None:
+        st.markdown(f"**수정 제안:** {correction}")
+
+    if result.get("error"):
+        st.error(result.get("translated_text", "번역 오류가 발생했습니다."))
+
+    task = result.get("task")
+    if task == TaskType.KOREAN_TO_JAPANESE.value:
+        translated_text = result.get("translated_text_ruby") or result.get("translated_text", "")
+        st.markdown(
+            f"<div style='padding:18px 20px;border:1px solid #dbe8f7;border-radius:16px;background:#f8fbff;line-height:1.7;'>{translated_text}</div>",
+            unsafe_allow_html=True,
+        )
+
+        original_text = result.get("original_text_highlighted") or result.get("original_text", "")
+        if original_text:
+            st.markdown("**원문 한국어:**", unsafe_allow_html=True)
+            st.markdown(original_text, unsafe_allow_html=True)
+
+        with st.expander("추가 보기", expanded=False):
+            pronunciation = result.get("pronunciation")
+            if pronunciation:
+                st.markdown(f"**발음:** {pronunciation}")
+
+            variations = result.get("style_variations_processed") or result.get("style_variations", {})
+            if variations:
+                for style, text in variations.items():
+                    st.markdown(f"**{style}**", unsafe_allow_html=True)
+                    st.markdown(text, unsafe_allow_html=True)
+
+            if result.get("key_tokens"):
+                st.markdown(f"**핵심 토큰:** {', '.join(result['key_tokens'])}")
+
+    else:
+        recommended = result.get("recommended") or ""
+        if recommended:
+            st.markdown(
+                f"<div style='padding:18px 20px;border:1px solid #dbe8f7;border-radius:16px;background:#f8fbff;line-height:1.7;'>{recommended}</div>",
+                unsafe_allow_html=True,
+            )
+
+        if result.get("original_text"):
+            st.markdown("**원문 일본어:**")
+            st.markdown(result["original_text"], unsafe_allow_html=True)
+
+        with st.expander("추가 보기", expanded=False):
+            for translation in result.get("translations", []):
+                style = translation.get("style", "")
+                method = translation.get("method", "")
+                text = translation.get("text", "")
+                st.markdown(f"**{method} / {style}**")
+                st.markdown(text, unsafe_allow_html=True)
+
+
+def render_translation_mode(subject: str):
+    task_labels = {
+        TaskType.KOREAN_TO_JAPANESE.value: "한국어 → 일본어",
+        TaskType.JAPANESE_TO_KOREAN.value: "일본어 → 한국어",
+    }
+    current_task = st.session_state.translation_task
+    current_index = 0 if current_task == TaskType.KOREAN_TO_JAPANESE.value else 1
+    selected = st.radio(
+        "번역 방향",
+        [task_labels[TaskType.KOREAN_TO_JAPANESE.value], task_labels[TaskType.JAPANESE_TO_KOREAN.value]],
+        index=current_index,
+        horizontal=True,
+        key="translation_task_radio",
+    )
+    selected_task = (
+        TaskType.KOREAN_TO_JAPANESE.value
+        if selected == task_labels[TaskType.KOREAN_TO_JAPANESE.value]
+        else TaskType.JAPANESE_TO_KOREAN.value
+    )
+
+    if selected_task != st.session_state.translation_task:
+        st.session_state.translation_task = selected_task
+        st.session_state.translation_result = {}
+
+    placeholders = {
+        TaskType.KOREAN_TO_JAPANESE.value: "한국어 문장을 입력하세요...",
+        TaskType.JAPANESE_TO_KOREAN.value: "일본어 문장을 입력하세요...",
+    }
+    prompt = st.chat_input(placeholders[selected_task], key="translation_input")
+    if prompt:
+        st.session_state.translation_result = {}
+        with st.spinner("번역 생성 중..."):
+            result = run_translation(prompt, selected_task)
+            if selected_task == TaskType.KOREAN_TO_JAPANESE.value:
+                processor = get_text_processor()
+                result = processor.process_comprehensive_result(
+                    result,
+                    OutputFormat.HTML,
+                    include_ruby=True,
+                    highlight_tokens=True,
+                )
+        st.session_state.translation_result = result
+        st.rerun()
+
+    render_translation_result(st.session_state.translation_result)
+
+
 def call_llm(subject, history):
     """
     OpenAI 연동 예시:
@@ -376,11 +561,54 @@ def render_chat():
                 use_container_width=True,
             ):
                 st.session_state.subject = name
+                st.session_state.translation_mode = False
+                st.session_state.translation_result = {}
                 sync_query_params()
                 st.rerun()
 
     subject = st.session_state.subject
     history = get_history(subject)
+
+    if subject == "일본어":
+        tab_col1, tab_col2, _ = st.columns([1, 1, 4])
+        if tab_col1.button(
+            "회화 모드",
+            key="btn_chat_mode",
+            type="primary" if not st.session_state.translation_mode else "secondary",
+            use_container_width=True,
+        ):
+            st.session_state.translation_mode = False
+            st.session_state.translation_result = {}
+            sync_query_params()
+            st.rerun()
+
+        if tab_col2.button(
+            "번역 모드",
+            key="btn_translation_mode",
+            type="primary" if st.session_state.translation_mode else "secondary",
+            use_container_width=True,
+        ):
+            st.session_state.translation_mode = True
+            st.session_state.translation_result = {}
+            sync_query_params()
+            st.rerun()
+
+    if st.session_state.translation_mode and subject == "일본어":
+        st.markdown(
+            f"""
+<div class="app-wrapper">
+  <div class="chat-area">
+    <div class="chat-header">
+      <span class="badge-subject">{subject}</span>
+      <strong>번역 모드</strong>
+    </div>
+  </div>
+</div>
+""",
+            unsafe_allow_html=True,
+        )
+        render_translation_mode(subject)
+        return
 
     st.markdown(
         f"""

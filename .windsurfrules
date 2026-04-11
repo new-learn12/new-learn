@@ -1,0 +1,8 @@
+# Python Coding Standards
+- **Clean Code:** 모든 함수와 클래스에는 Python Type Hinting을 적용할 것.
+- **Naming:** 변수명과 함수명은 논리적이고 직관적인 Snake Case를 사용할 것.
+- **Lazy Loading:** 외부 NLP 라이브러리(Helsinki-NLP, pykakasi 등)는 메모리 최적화를 위해 호출 시점에 로드(Lazy Loading)할 것.
+- **Error Handling:** 외부 API(Gemini 등) 호출 시 반드시 try-except 블록을 포함할 것.
+
+# Project Specifics
+- 모든 구현은 Pinned Context에 있는 '일본어 교육 모듈 구조 개선 보고서'의 설계안을 최우선으로 준수함.
