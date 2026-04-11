@@ -1,2 +1,5 @@
-streamlit
-openai
+# --- [웹 인터페이스 및 UI] ---
+streamlit               # 웹 대시보드 및 사용자 인터페이스 구성
+
+# --- [외부 LLM API 연동] ---
+openai                  # OpenAI (GPT) API 사용
