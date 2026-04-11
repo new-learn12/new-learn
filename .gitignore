@@ -21,5 +21,13 @@ dist/
 build/
 *.pyc
 
-# IDE 설정
+# 모델 가중치 파일 제외
+*.safetensors
+*.bin
+checkpoints_s1/
+checkpoints_s2/
+
+# 캐시 및 환경 설정 제외
+__pycache__/
 .vscode/
+.png

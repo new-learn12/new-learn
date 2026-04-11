@@ -1,8 +1,15 @@
 ﻿"""NewLearn Streamlit 앱: 초기 챗봇 UI + 동일 톤 랜딩 페이지."""
 
+import sys
+import os
 from datetime import datetime
-
 import streamlit as st
+
+# logic.py를 찾기 위한 경로 설정 (필요 시)
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+# 반도체 모듈 임포트
+from modules.semiconductor.logic import call_semi_llm
 
 st.set_page_config(
     page_title="NewLearn",
@@ -259,22 +266,34 @@ def render_messages(history):
 
 
 def call_llm(subject, history):
-    """
-    OpenAI 연동 예시:
-        from openai import OpenAI
-        client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-        msgs = [{"role": "system", "content": f"{subject} 전문 튜터입니다."}]
-        for h in history:
-            role = "assistant" if h["role"] == "bot" else "user"
-            msgs.append({"role": role, "content": h["content"]})
-        res = client.chat.completions.create(model="gpt-4o-mini", temperature=0.7, messages=msgs)
-        return res.choices[0].message.content
-    """
-    last = history[-1]["content"]
-    short = f'{last[:40]}{"..." if len(last) > 40 else ""}'
-    return f'"{short}"에 대한 답변입니다.<br>{subject} 맥락에 맞춰 LLM이 응답합니다.'
+    last_query = history[-1]["content"]
+    
+    # 1. 반도체 과목일 경우 전문 도슨트 로직 실행
+    if subject == "반도체":
+        with st.spinner("도슨트가 답변을 구성 중입니다..."):
+            # logic.py의 함수 호출
+            raw, parsed = call_semi_llm(last_query)
+            
+        if parsed:
+            # UI용 HTML 카드 구성
+            return f"""
+            <div style="line-height:1.6;">
+                <p><b>💡 비유:</b> {parsed.get('1단계', '')}</p>
+                <div style="background:#f0f4f9; border-left:4px solid #185fa5; padding:12px; border-radius:4px; margin:10px 0;">
+                    <b>⚙️ 기술 설명:</b><br>{parsed.get('2단계', '')}
+                </div>
+                <p style="font-size:0.9em; color:#555;"><b>📚 핵심 용어:</b><br>{parsed.get('3단계', '').replace('/', '<br>')}</p>
+                <p style="color:#185fa5; font-weight:bold; margin-top:10px;">❓ {parsed.get('4단계', '')}</p>
+            </div>
+            """
+        else:
+            return "답변을 생성하는 과정에서 형식이 맞지 않아 출력에 실패했습니다. 다시 질문해주세요."
 
-
+    # 2. 그 외 과목 (추후 확장 가능)
+    short = f'{last_query[:40]}{"..." if len(last_query) > 40 else ""}'
+    return f'"{short}"에 대한 {subject} 학습 답변입니다.<br>해당 과목의 전용 로직이 아직 연결되지 않았습니다.'
+    # 다른 과목 기본 응답
+    return f"{subject} 튜터 준비 중입니다. 질문하신 내용은 '{last_query[:20]}...' 입니다."
 def render_landing():
     st.markdown(
         """
