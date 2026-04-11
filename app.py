@@ -1,6 +1,6 @@
 ﻿from datetime import datetime
 import streamlit as st
-from llm_handler import call_llm  # ← 추가된 줄
+from modules.psychology.llm_handler import call_llm  # ← 추가된 줄
 
 st.set_page_config(
     page_title="NewLearn",

@@ -10,7 +10,7 @@ GitHub Models는 OpenAI 호환 엔드포인트를 제공하므로 openai 라이�
 import re
 import streamlit as st
 from openai import OpenAI, AuthenticationError, RateLimitError
-from psychology_rag import build_context_block
+from modules.psychology.psychology_rag import build_context_block
 
 
 # ── 모델 설정 ─────────────────────────────────────────────────────────────
