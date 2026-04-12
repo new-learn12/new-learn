@@ -72,10 +72,10 @@ def get_french_bot_result(user_query):
     
     [문법 조립 블록]
     - 문장을 단어별로 쪼개고 뜻 설명 (예: Je(나) - 주어)
-    
+
     [입문자 눈높이 해설]
     - 발음 팁과 파리 여행에서의 실제 쓰임새 설명
-    
+
     주의사항:
     - 절대 대괄호 앞에 숫자(1. 2. 등)를 붙이지 마세요.
     - 불필요한 줄바꿈을 남발하지 말고 촘촘하게 작성하세요."""
@@ -86,7 +86,7 @@ def get_french_bot_result(user_query):
         pronunciation = matched['pronunciation']
         # CSV에 image_url 컬럼이 있는지 확인 후 반환
         ans_image = matched['image_url'] if 'image_url' in matched and pd.notna(matched['image_url']) else None
-        
+
         user_prompt = f"""
         [데이터베이스 정보]
         - 문장: {french_text}
@@ -115,11 +115,10 @@ def get_french_bot_result(user_query):
             top_p=0.8,
             max_tokens=1000,
         )
-        llm_explanation = response.choices[0].message.content.strip() 
+        llm_explanation = response.choices[0].message.content.strip()
     except Exception as e:
         llm_explanation = f"LLM 답변 생성 중 오류가 발생했습니다: {e}"
         prefix = f"프랑스어 문장: {user_query}\n"
 
     final_text = f"{prefix}\n{llm_explanation}" if prefix else llm_explanation
     return final_text, ans_image
-
