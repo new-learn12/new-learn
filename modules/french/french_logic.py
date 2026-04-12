@@ -19,12 +19,14 @@ CSV_PATH = os.path.normpath(os.path.join(BASE_DIR, "french.csv"))
 print(f"임베딩 모델 및 데이터 로딩 중... (경로: {CSV_PATH})")
 embedder = SentenceTransformer('jhgan/ko-sroberta-multitask')
 
+
 def load_data(file_path):
     try:
         # 절대 경로로 파일을 읽어와 경로 미아를 방지합니다.
         return pd.read_csv(file_path, encoding='utf-8')
     except Exception:
         return pd.read_csv(file_path, encoding='cp949')
+
 
 # 데이터 로드 실행
 df = load_data(CSV_PATH)
@@ -37,9 +39,11 @@ corpus_embeddings = embedder.encode(df['combined'].tolist(), convert_to_tensor=T
 print("데이터베이스 벡터화 완료!")
 
 # 2. 하이브리드 검색 로직
+
+
 def search_hybrid(query):
     query_clean = str(query).lower().strip()
-    
+
     for i, row in df.iterrows():
         f_val = str(row['french']).lower()
         k_val = str(row['korean']).lower()
@@ -49,23 +53,25 @@ def search_hybrid(query):
     q_emb = embedder.encode(query, convert_to_tensor=True)
     scores = util.cos_sim(q_emb, corpus_embeddings)[0]
     best_idx = torch.argmax(scores).item()
-    
+
     if scores[best_idx].item() > 0.65:
         return df.iloc[best_idx]
-    
+
     return None
 
 # 3. LLM 연동 및 결과 반환 함수
+
+
 def get_french_bot_result(user_query):
     # 클라우드 서버(DigitalOcean)의 환경 변수에서 안전하게 키를 꺼내오는 방식
     MY_OPENAI_KEY = os.environ.get("OPENAI_API_KEY", "").strip()
-    
+
     # 만약 서버에 키가 세팅 안 되어 있으면 에러 방지용 안내문 출력
     if not MY_OPENAI_KEY:
         return "시스템 오류: 서버에 OpenAI API 키가 설정되지 않았습니다. 관리자에게 문의하세요.", None
 
     matched = search_hybrid(user_query)
-    
+
     # [핵심 수정] 숫자(1. 2.)를 절대 쓰지 못하게 억제하고 템플릿을 고정함
     system_prompt = """당신은 'NEW LEARN' 플랫폼의 왕초보 전용 프랑스어 선생님입니다.
     사용자에게 다음 형식에 맞춰 '초개인화 해설'을 제공하세요.
@@ -86,7 +92,7 @@ def get_french_bot_result(user_query):
         pronunciation = matched['pronunciation']
         # CSV에 image_url 컬럼이 있는지 확인 후 반환
         ans_image = matched['image_url'] if 'image_url' in matched and pd.notna(matched['image_url']) else None
-        
+
         user_prompt = f"""
         [데이터베이스 정보]
         - 문장: {french_text}
@@ -115,11 +121,10 @@ def get_french_bot_result(user_query):
             top_p=0.8,
             max_tokens=1000,
         )
-        llm_explanation = response.choices[0].message.content.strip() 
+        llm_explanation = response.choices[0].message.content.strip()
     except Exception as e:
         llm_explanation = f"LLM 답변 생성 중 오류가 발생했습니다: {e}"
         prefix = f"프랑스어 문장: {user_query}\n"
 
     final_text = f"{prefix}\n{llm_explanation}" if prefix else llm_explanation
     return final_text, ans_image
-

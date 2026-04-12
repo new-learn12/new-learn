@@ -79,6 +79,7 @@ class ComprehensiveResult:
     key_tokens: List[str]
     pronunciation: str
 
+
 @st.cache_resource
 def load_ja_en_pipeline():
     """일본어 -> 영어 모델 로드"""
@@ -86,11 +87,12 @@ def load_ja_en_pipeline():
         import torch
         device = 0 if torch.cuda.is_available() else -1
         print(f"[Info] Helsinki 모델을 {'GPU' if device == 0 else 'CPU'}로 로드합니다.")
-        
+
         return pipeline("translation_ja_to_en", model="Helsinki-NLP/opus-mt-ja-en", device=device, src_lang="ja", tgt_lang="en")
     except Exception as e:
         print(f"[Warning] ja-en 로드 실패: {e}")
         return None
+
 
 @st.cache_resource
 def load_en_ko_pipeline():
@@ -99,26 +101,27 @@ def load_en_ko_pipeline():
         import torch
         device = 0 if torch.cuda.is_available() else -1
         print(f"[Info] Helsinki 모델을 {'GPU' if device == 0 else 'CPU'}로 로드합니다.")
-        
+
         return pipeline("translation_en_to_ko", model="Helsinki-NLP/opus-mt-tc-big-en-ko", device=device, src_lang="en", tgt_lang="ko")
     except Exception as e:
         print(f"[Warning] en-ko 로드 실패: {e}")
         return None
 
+
 class AsymmetricTranslator:
     """비대칭 번역 파이프라인 - Task A/B에 따라 다른 로직 적용"""
-    
+
     def __init__(self, groq_api_key: str):
         """
         Args:
             groq_api_key: Gemini API 키
         """
         self.client = Groq(api_key=groq_api_key)
-        
+
         # 지연 로딩(Lazy Loading)을 위한 파이프라인 변수 초기화
         self._ja_en_pipeline = None
         self._en_ko_pipeline = None
-        
+
         # Helsinki 모델은 Task A에서만 지연 로딩
         self._helsinki_pipeline = None
 
@@ -127,18 +130,18 @@ class AsymmetricTranslator:
         # 1. 일본어 -> 영어 파이프라인 체크 및 로드
         if self._ja_en_pipeline is None:
             self._ja_en_pipeline = load_ja_en_pipeline()
-            
+
         # 2. 영어 -> 한국어 파이프라인 체크 및 로드
         if self._en_ko_pipeline is None:
             self._en_ko_pipeline = load_en_ko_pipeline()
-            
+
         return self._ja_en_pipeline, self._en_ko_pipeline
-    
+
     def _grammar_check_with_gemini(self, text: str, source_lang: str) -> GrammarCheckResult:
         """
         Gemini를 사용한 문법 검증 (Fail-Fast)
         """
-        response_text = "" # 스코프 확보를 위해 미리 초기화
+        response_text = ""  # 스코프 확보를 위해 미리 초기화
         try:
             prompt = (
                 f"다음 {source_lang} 텍스트의 문법을 검증해주세요.\n\n"
@@ -151,7 +154,7 @@ class AsymmetricTranslator:
                 f"텍스트: {text}\n\n"
                 f"반드시 JSON 형식으로만 응답하세요."
             )
-            
+
             response = self.client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
                 messages=[{"role": "user", "content": prompt}],
@@ -164,54 +167,54 @@ class AsymmetricTranslator:
 
             content = response.choices[0].message.content
             response_text = content.strip()
-            
+
             # JSON 추출 (마크다운 제거)
             if "```json" in response_text:
                 response_text = response_text.split("```json")[1].split("```")[0].strip()
             elif "```" in response_text:
                 response_text = response_text.split("```")[1].split("```")[0].strip()
-            
+
             result = json.loads(response_text)
-            
+
             return GrammarCheckResult(
                 is_correct=result.get("is_correct", True),
                 correction=result.get("correction"),
                 confidence=min(float(result.get("confidence", 1.0)), 1.0)
             )
-        
+
         except (json.JSONDecodeError, ValueError) as e:
             print(f"[Warning] 문법 검증 파싱 실패: {e}")
             if response_text:
                 print(f"[Debug] 원문: {response_text[:100]}...")
         except Exception as e:
             print(f"[Warning] 문법 검증 중 예외 발생: {type(e).__name__}: {e}")
-        
+
         # Fallback: 실패 시 기본값 반환
         return GrammarCheckResult(is_correct=True, confidence=0.0)
-    
+
     def _translate_with_helsinki(self, text: str) -> str:
         """
         Helsinki-NLP를 사용한 직역 번역 (ja-ko only)
-        
+
         Args:
             text: 번역할 일본어 텍스트
-            
+
         Returns:
             번역된 한국어 텍스트
         """
         pipe_ja_en, pipe_en_ko = self._get_helsinki_pipelines()
         if (not pipe_ja_en) or (not pipe_en_ko):
             return "[Helsinki 모델 로드 실패]"
-        
+
         try:
             # 1단계: 일본어 -> 영어
             en_result = pipe_ja_en(text, max_length=512, num_beams=4)
             en_text = en_result[0]["translation_text"]
-            
+
             # 2단계: 영어 -> 한국어
             ko_result = pipe_en_ko(
-                en_text, 
-                max_length=512, 
+                en_text,
+                max_length=512,
                 num_beams=4,           # 4개의 후보를 두고 가장 적절한 결과 선택
                 early_stopping=True,    # 적절한 시점에서 종료
                 no_repeat_ngram_size=2  # 무의미한 반복(예: ....) 방지
@@ -220,23 +223,23 @@ class AsymmetricTranslator:
         except Exception as e:
             print(f"[Warning] Helsinki 번역 실패: {e}")
             return "[번역 실패]"
-    
+
     def _translate_with_gemini(
-        self, 
-        text: str, 
-        source_lang: str, 
-        target_lang: str, 
+        self,
+        text: str,
+        source_lang: str,
+        target_lang: str,
         style: TranslationStyle = TranslationStyle.NATURAL
     ) -> str:
         """
         Gemini를 사용한 의역 번역
-        
+
         Args:
             text: 번역할 텍스트
             source_lang: 원본 언어
             target_lang: 목표 언어
             style: 번역 스타일
-            
+
         Returns:
             번역된 텍스트
         """
@@ -249,9 +252,9 @@ class AsymmetricTranslator:
                 TranslationStyle.FEMININE: "여성스러운 부드러운 말투로",
                 TranslationStyle.MASCULINE: "남성스러운 직설적인 말투로",
             }
-            
+
             style_desc = style_descriptions.get(style, "자연스럽게")
-            
+
             prompt = (
                 f"{source_lang} 텍스트를 {target_lang}로 번역해주세요. "
                 f"{style_desc} 번역하세요.\n\n"
@@ -259,7 +262,7 @@ class AsymmetricTranslator:
                 f"결과는 반드시 **json** 형식으로 출력해야 합니다. "
                 f"번역만 출력하세요."
             )
-            
+
             response = self.client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
                 messages=[{"role": "user", "content": prompt}],
@@ -267,18 +270,18 @@ class AsymmetricTranslator:
             )
             content = response.choices[0].message.content
             return content.strip() if content else ""
-        
+
         except Exception as e:
             print(f"[Warning] Gemini 번역 실패: {e}")
             return "[번역 실패]"
-    
+
     def _comprehensive_translate_with_gemini(self, text: str) -> ComprehensiveResult:
         """
         Task B: 단일 Gemini API 호출로 종합 번역 결과 생성
-        
+
         Args:
             text: 한국어 입력 텍스트
-            
+
         Returns:
             ComprehensiveResult 객체
         """
@@ -301,7 +304,7 @@ class AsymmetricTranslator:
   "pronunciation": string (로마자 표기, 헵번식)
 }
 """
-            
+
             prompt = (
                 f"다음 한국어 텍스트를 일본어로 번역하고 분석해주세요.\n\n"
                 f"{schema_description}\n\n"
@@ -315,7 +318,7 @@ class AsymmetricTranslator:
                 f"텍스트: {text}\n\n"
                 f"반드시 위 JSON 형식으로만 응답하세요. 다른 텍스트는 포함하지 마세요."
             )
-            
+
             # google-genai 1.72.0: JSON 응답 강제
             response = self.client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
@@ -324,22 +327,22 @@ class AsymmetricTranslator:
             )
             content = response.choices[0].message.content
             response_text = content.strip() if content else ""
-            
+
             # JSON 추출 시도 (마크다운 코드블록 제거)
             if response_text.startswith("```json"):
                 response_text = response_text[7:]
             if response_text.endswith("```"):
                 response_text = response_text[:-3]
             response_text = response_text.strip()
-            
+
             result = json.loads(response_text)
-            
+
             # 필수 필드 검증
             required_fields = ["is_correct", "translated_text", "style_variations", "key_tokens", "pronunciation"]
             for field in required_fields:
                 if field not in result:
                     raise ValueError(f"필수 필드 누락: {field}")
-            
+
             return ComprehensiveResult(
                 is_correct=result["is_correct"],
                 correction=result.get("correction"),
@@ -348,13 +351,13 @@ class AsymmetricTranslator:
                 key_tokens=result["key_tokens"],
                 pronunciation=result["pronunciation"]
             )
-        
+
         except json.JSONDecodeError as e:
             print(f"[Error] JSON 파싱 실패: {e}")
             print(f"[Debug] 응답 텍스트: {response_text[:200]}...")
         except Exception as e:
             print(f"[Error] 종합 번역 실패: {e}")
-        
+
         # Fallback 결과
         return ComprehensiveResult(
             is_correct=True,
@@ -370,20 +373,20 @@ class AsymmetricTranslator:
             key_tokens=[],
             pronunciation="[실패]"
         )
-    
+
     def translate_japanese_to_korean(self, text: str) -> Dict[str, Any]:
         """
         Task A: 일본어 → 한국어 번역 (비대칭 파이프라인)
-        
+
         Args:
             text: 일본어 입력 텍스트
-            
+
         Returns:
             종합 결과 딕셔너리
         """
         # 1. Gemini로 문법 검증 (Fail-Fast)
         grammar_result = self._grammar_check_with_gemini(text, "일본어")
-        
+
         if not grammar_result.is_correct and grammar_result.correction:
             return {
                 "task": "ja_to_ko",
@@ -396,15 +399,15 @@ class AsymmetricTranslator:
                 "translations": [],
                 "error": "문법 오류가 발견되었습니다."
             }
-        
+
         # 2. Helsinki로 직역 번역
         literal_translation = self._translate_with_helsinki(text)
-        
+
         # 3. Gemini로 의역 번역
         natural_translation = self._translate_with_gemini(
             text, "일본어", "한국어", TranslationStyle.NATURAL
         )
-        
+
         # 4. 결과 대조 및 종합
         translations = [
             TranslationResult(
@@ -422,7 +425,7 @@ class AsymmetricTranslator:
                 confidence=0.9
             )
         ]
-        
+
         return {
             "task": "ja_to_ko",
             "original_text": text,
@@ -442,19 +445,19 @@ class AsymmetricTranslator:
             ],
             "recommended": natural_translation  # 의역을 추천
         }
-    
+
     def translate_korean_to_japanese(self, text: str) -> Dict[str, Any]:
         """
         Task B: 한국어 → 일본어 번역 (단일 Gemini API 호출)
-        
+
         Args:
             text: 한국어 입력 텍스트
-            
+
         Returns:
             종합 결과 딕셔너리
         """
         result = self._comprehensive_translate_with_gemini(text)
-        
+
         return {
             "task": "ko_to_ja",
             "original_text": text,
@@ -467,15 +470,15 @@ class AsymmetricTranslator:
             "key_tokens": result.key_tokens,
             "pronunciation": result.pronunciation
         }
-    
+
     def translate(self, text: str, task_type: TaskType) -> Dict[str, Any]:
         """
         통합 번역 인터페이스
-        
+
         Args:
             text: 입력 텍스트
             task_type: 번역 작업 타입
-            
+
         Returns:
             번역 결과 딕셔너리
         """
@@ -491,7 +494,7 @@ class AsymmetricTranslator:
 if __name__ == "__main__":
     import os
     from dotenv import load_dotenv
-    
+
     if os.path.exists(".env"):
         load_dotenv()
     api_key = os.getenv("GROQ_API_KEY")
@@ -500,20 +503,20 @@ if __name__ == "__main__":
         print("실제 API 테스트를 위해서는 다음 명령어로 설정하세요:")
         print("$env:GROQ_API_KEY = 'your_api_key_here'")
         print("\n구조 검증만 진행합니다...")
-        
+
         # 구조 검증
         try:
             translator = AsymmetricTranslator(groq_api_key="dummy_key")
             print("✅ 모듈 import 및 클래스 초기화 성공")
-            
+
             # Task 타입 검증
             print("✅ TaskType enum:", [t.value for t in TaskType])
             print("✅ TranslationStyle enum:", [s.value for s in TranslationStyle])
-            
+
             # 데이터 클래스 검증
             sample_grammar = GrammarCheckResult(is_correct=True, confidence=0.9)
             sample_translation = TranslationResult(
-                original_text="test", translated_text="テスト", 
+                original_text="test", translated_text="テスト",
                 style=TranslationStyle.NATURAL, method="gemini"
             )
             sample_comprehensive = ComprehensiveResult(
@@ -521,18 +524,18 @@ if __name__ == "__main__":
                 style_variations={"casual": "テスト"}, key_tokens=["test"], pronunciation="tesuto"
             )
             print(f"✅ 데이터 클래스 생성 성공")
-            
+
             print("\n🎉 구조 검증 완료! API 키를 설정한 후 실제 테스트를 진행하세요.")
-            
+
         except Exception as e:
             print(f"❌ 구조 검증 실패: {e}")
             import traceback
             traceback.print_exc()
-        
+
         exit(0)
-    
+
     translator = AsymmetricTranslator(groq_api_key=api_key)
-    
+
     # Task A 테스트 (일본어 → 한국어)
     print("\n[Task A: 일본어 → 한국어]")
     ja_text = "こんにちは、世界！"
@@ -545,7 +548,7 @@ if __name__ == "__main__":
             print(f"✅ 첫 번째 번역: {result_a['translations'][0]['text'][:50]}...")
     except Exception as e:
         print(f"❌ Task A 테스트 실패: {e}")
-    
+
     # Task B 테스트 (한국어 → 일본어)
     print("\n[Task B: 한국어 → 일본어]")
     ko_text = "안녕하세요, 세계!"
@@ -559,5 +562,5 @@ if __name__ == "__main__":
         print(f"✅ 발음: {result_b['pronunciation'][:30]}...")
     except Exception as e:
         print(f"❌ Task B 테스트 실패: {e}")
-    
+
     print("\n🎉 모든 테스트 완료!")

@@ -56,9 +56,11 @@ SUBJECT_NAMES = list(SUBJECT_INFO.keys())
 
 # --- 헬퍼 함수 정의 ---
 
+
 def now():
     d = datetime.now()
     return f"{d.hour}:{d.minute:02d}"
+
 
 def get_history(subject):
     if subject not in st.session_state.histories:
@@ -72,9 +74,11 @@ def get_history(subject):
         ]
     return st.session_state.histories[subject]
 
+
 def sync_query_params():
     st.query_params["view"] = st.session_state.page
     st.query_params["subject"] = st.session_state.subject
+
 
 def init_state():
     if "subject" not in st.session_state:
@@ -99,20 +103,21 @@ def init_state():
             del st.query_params["start"]
         except Exception:
             pass
-        
+
     # --- 일본어 모듈 전용 세션 상태 ---
     if "jp_translation_mode" not in st.session_state:
         st.session_state.jp_translation_mode = False
     if "translation_task" not in st.session_state:
-        st.session_state.translation_task = "KOREAN_TO_JAPANESE" # TaskType 값 매핑
+        st.session_state.translation_task = "KOREAN_TO_JAPANESE"  # TaskType 값 매핑
     if "translation_result" not in st.session_state:
         st.session_state.translation_result = {}
     if "translator_error" not in st.session_state:
         st.session_state.translator_error = None
-        
+
     # 다른 과목으로 이동 시 번역 모드 초기화
     if st.session_state.subject != "일본어":
         st.session_state.jp_translation_mode = False
+
 
 def inject_styles(current_page):
     sidebar_visibility = "display:none!important;" if current_page == "landing" else ""
@@ -267,7 +272,7 @@ def render_messages(history):
         t = msg.get("time", "")
         c = msg["content"]
         img = msg.get("image")
-        
+
         # 1. 프랑스어 챗봇 파일의 텍스트 전처리 로직 이식
         c_display = c.strip()
         c_display = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', c_display)
@@ -284,9 +289,9 @@ def render_messages(history):
                     tts_html = f'<div style="margin-top:10px;"><button class="tts-btn" data-text="{fr_text}" data-lang="fr-FR">🇫🇷 발음 듣기</button></div>'
                 except Exception:
                     pass
-            
+
             img_html = f'<img src="{img}" style="margin-top:8px; max-width:250px; border-radius:10px; display:block;">' if img else ""
-            
+
             # 3. 심리 챗봇 파일의 예쁜 HTML 디자인 껍데기로 감싸기
             rows.append(
                 f'<div class="msg-row">'
@@ -308,7 +313,7 @@ def render_messages(history):
 # --- 메인 로직 ---
 def call_llm(subject, history):
     prompt = history[-1]["content"]
-    
+
     if subject == "프랑스어":
         return get_french_bot_result(prompt)
     elif subject == "심리학":
@@ -318,6 +323,7 @@ def call_llm(subject, history):
     elif subject == "일본어":
         return get_japanese_bot_result(history), None
     return f"현재 {subject} 학습봇은 준비 중입니다.", None
+
 
 def render_landing():
     st.markdown(
@@ -426,10 +432,9 @@ def render_chat():
     subject = st.session_state.subject
     history = get_history(subject)
 
-    
     # 1. 커스텀 UI 렌더링 분기 (UI 탈취 플래그)
     skip_main_input = False
-    
+
     if subject == "일본어":
         # 일본어 모듈은 내부에서 탭을 그리고, 번역 모드일 경우 자체 input을 쓰므로 skip_main_input 플래그를 받아옴
         skip_main_input = render_japanese_ui(history, render_messages, now)
@@ -448,7 +453,7 @@ def render_chat():
         """,
             unsafe_allow_html=True,
         )
-    
+
     # === 프랑스어 챗봇 파일에서 가져온 필수 Javascript 삽입 부분 ===
     components.html("""
     <script>
@@ -490,6 +495,7 @@ def render_chat():
                 response, ans_image = call_llm(subject, history)
             history.append({"role": "bot", "content": response, "image": ans_image, "time": now()})
             st.rerun()
+
 
 # --- 앱 실행 ---
 init_state()

@@ -3,9 +3,10 @@ import streamlit as st
 from dotenv import load_dotenv
 from modules.japanese import AsymmetricTranslator, JapaneseTextProcessor, TaskType, OutputFormat
 
-# 기존 B 파일의 get_translator, get_text_processor, run_translation, 
+# 기존 B 파일의 get_translator, get_text_processor, run_translation,
 # render_translation_result, render_translation_mode 함수들을 그대로 이 곳에 둡니다.
 # (단, init_state 로직은 메인 A 파일로 넘깁니다)
+
 
 def get_japanese_bot_result(history):
     """일본어 전용 Groq API 호출 로직 (B 파일의 call_llm 내부 로직)"""
@@ -14,11 +15,11 @@ def get_japanese_bot_result(history):
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
         return "[오류] GROQ_API_KEY가 설정되지 않았습니다."
-    
+
     try:
         from groq import Groq
         client = Groq(api_key=api_key)
-        
+
         context = []
         for msg in history[1:]:
             if len(msg["content"]) > 10:
@@ -27,7 +28,7 @@ def get_japanese_bot_result(history):
                 break
         context = context[-3:] if context else []
         context_text = "\n".join([f"[{msg['role']}]: {msg['content']}" for msg in context])
-        
+
         prompt = f"""당신은 일본어 학습 튜터입니다. 문법/발음/회화를 간결히 설명하세요.
 반드시 **json** 형식으로만 응답해야 합니다.
 
@@ -38,21 +39,22 @@ def get_japanese_bot_result(history):
 {history[-1]['content']}
 
 간결하고 명확한 답변을 300자 이내로 작성하세요."""
-        
+
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": prompt}],
-            response_format={"type": "json_object"} 
+            response_format={"type": "json_object"}
         )
         answer = response.choices[0].message.content
         return answer if answer else "[응답 생성 실패]"
     except Exception as e:
         return f"[API 오류] {str(e)}"
 
+
 def render_japanese_ui(history, render_messages_func, now_func):
     """일본어 전용 UI 렌더링 (회화/번역 탭 분기)"""
     tab_col1, tab_col2, _ = st.columns([1, 1, 4])
-    
+
     # 탭 버튼 UI
     if tab_col1.button("회화 모드", key="btn_chat_mode", type="primary" if not st.session_state.jp_translation_mode else "secondary", use_container_width=True):
         st.session_state.jp_translation_mode = False
@@ -70,17 +72,18 @@ def render_japanese_ui(history, render_messages_func, now_func):
             </div></div></div>""", unsafe_allow_html=True
         )
         # B 파일의 번역 모드 렌더링 함수 호출
-        render_translation_mode("일본어") 
-        return True # 번역 모드에서는 자체 chat_input을 쓰므로 메인 프레임워크에 True를 반환해 알림
+        render_translation_mode("일본어")
+        return True  # 번역 모드에서는 자체 chat_input을 쓰므로 메인 프레임워크에 True를 반환해 알림
     else:
         st.markdown(
             f"""<div class="app-wrapper"><div class="chat-area"><div class="chat-header">
             <span class="badge-subject">일본어</span> <strong>회화 모드</strong>
-            </div><div class="chat-messages">{render_messages_func(history)}</div></div></div>""", 
+            </div><div class="chat-messages">{render_messages_func(history)}</div></div></div>""",
             unsafe_allow_html=True
         )
-        return False # 회화 모드이므로 메인 프레임워크의 chat_input을 사용하도록 False 반환
-    
+        return False  # 회화 모드이므로 메인 프레임워크의 chat_input을 사용하도록 False 반환
+
+
 def render_translation_mode(subject: str):
     task_labels = {
         TaskType.KOREAN_TO_JAPANESE.value: "한국어 → 일본어",
@@ -126,6 +129,7 @@ def render_translation_mode(subject: str):
         st.rerun()
 
     render_translation_result(st.session_state.translation_result)
+
 
 def render_translation_result(result: dict):
     if not result:
@@ -194,10 +198,10 @@ def render_translation_result(result: dict):
                 st.markdown(f"**{method} / {style}**")
                 st.markdown(text, unsafe_allow_html=True)
 
+
 def get_translator():
     if "translator" in st.session_state and st.session_state.translator is not None:
         return st.session_state.translator
-
 
     if os.path.exists(".env"):
         load_dotenv()

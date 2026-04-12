@@ -1,11 +1,10 @@
+import streamlit as st
+import re
+from transformers import AutoModelForCausalLM, AutoTokenizer
+import torch
 import os
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
-import os
-import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
-import re
-import streamlit as st
 
 # 1. 모델 설정
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -15,9 +14,10 @@ MODEL_DIR = os.path.join(BASE_DIR, "models", "v1_r8_docent_competition_opt")
 tokenizer = None
 model = None
 
+
 def load_model():
     global tokenizer, model
-    
+
     # 1단계: 폴더 존재 여부 확인
     if not os.path.exists(MODEL_DIR):
         print(f"⚠️ 경고: 모델 디렉토리를 찾을 수 없습니다. ({MODEL_DIR})")
@@ -26,19 +26,19 @@ def load_model():
     # 2단계: 로드 시도
     try:
         print(f"📦 반도체 도슨트 모델 로딩 중...")
-        
+
         # 토크나이저 로드 (에러 방지를 위해 use_fast=False 권장)
         tokenizer = AutoTokenizer.from_pretrained(
-            MODEL_DIR, 
+            MODEL_DIR,
             trust_remote_code=True,
-            use_fast=False 
+            use_fast=False
         )
-        
+
         # 모델 로드
         model = AutoModelForCausalLM.from_pretrained(
-            MODEL_DIR, 
-            torch_dtype=torch.bfloat16, 
-            device_map="auto", 
+            MODEL_DIR,
+            torch_dtype=torch.bfloat16,
+            device_map="auto",
             trust_remote_code=True
         )
         model.eval()
@@ -52,8 +52,10 @@ def load_model():
         model = None
         return False
 
+
 # 실행
 model_loaded = load_model()
+
 
 def call_semi_llm(question):
     """
@@ -63,11 +65,11 @@ def call_semi_llm(question):
     if model is None or tokenizer is None:
         error_msg = "현재 반도체 도슨트 모델을 불러올 수 없습니다. 경로를 확인해주세요."
         return error_msg, {k: error_msg for k in ["1단계", "2단계", "3단계", "4단계"]}
-    
+
     # 1. 시스템 프롬프트: compare_model.py 스타일 (JSON 언급 삭제)
     messages = [
         {
-            "role": "system", 
+            "role": "system",
             "content": (
                 "당신은 반도체 전문 도슨트입니다. 반드시 초보자를 위해 아래 4단계 구조로 상세히 답변하세요.\n\n"
                 "### 구조 ###\n"
@@ -79,28 +81,28 @@ def call_semi_llm(question):
         },
         {"role": "user", "content": question}
     ]
-    
+
     # 2. Chat Template 적용 및 답변 시작 가이드
     prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-    prompt += "1단계(비유):" # 모델이 서론 없이 바로 답변을 시작하도록 유도
-    
+    prompt += "1단계(비유):"  # 모델이 서론 없이 바로 답변을 시작하도록 유도
+
     inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
-    
+
     with torch.no_grad():
         outputs = model.generate(
             **inputs,
-            max_new_tokens=1536, # 풍부한 내용을 위해 충분한 토큰 할당
-            temperature=0.45, 
+            max_new_tokens=1536,  # 풍부한 내용을 위해 충분한 토큰 할당
+            temperature=0.45,
             top_p=0.9,
             do_sample=True,
             repetition_penalty=1.1,
             eos_token_id=tokenizer.eos_token_id
         )
-    
+
     # 3. 전체 텍스트 추출
     generated_text = tokenizer.decode(outputs[0][len(inputs["input_ids"][0]):], skip_special_tokens=True).strip()
     full_content = "1단계(비유): " + generated_text
-    
+
     # 4. app.py UI를 위한 섹션 분리 (정규표현식 활용)
     parsed_data = {
         "1단계": "",
@@ -108,7 +110,7 @@ def call_semi_llm(question):
         "3단계": "",
         "4단계": ""
     }
-    
+
     # 섹션별 텍스트를 나누기 위한 패턴 (숫자만 맞으면 괄호나 이름이 달라도 캡처)
     sections = {
         "1단계": r"1단계.*?:(.*?)(?=2단계|$)",
@@ -116,26 +118,27 @@ def call_semi_llm(question):
         "3단계": r"3단계.*?:(.*?)(?=4단계|$)",
         "4단계": r"4단계.*?:(.*?)(?=$)"
     }
-    
+
     for key, pattern in sections.items():
         match = re.search(pattern, full_content, re.DOTALL)
         if match:
             # 추출된 텍스트에서 불필요한 공백이나 특수문자 정제
             content = match.group(1).strip()
             # 마크다운 태그가 섞여있을 경우 제거 (선택 사항)
-            content = re.sub(r'^###\s*.*?\n', '', content) 
+            content = re.sub(r'^###\s*.*?\n', '', content)
             parsed_data[key] = content
         else:
             parsed_data[key] = "내용을 생성 중입니다."
 
     return full_content, parsed_data
 
+
 def get_semiconductor_bot_result(history):
     last_query = history[-1]["content"]
-    
+
     with st.spinner("도슨트가 답변을 구성 중입니다..."):
         raw, parsed = call_semi_llm(last_query)
-        
+
     if parsed:
         # 안전장치: 각 단계별 텍스트 추출 및 기본값 설정
         step1 = parsed.get('1단계', '내용이 없습니다.')
@@ -170,6 +173,7 @@ def get_semiconductor_bot_result(history):
         return html_content.strip(), None
     else:
         return "답변을 생성하는 과정에서 형식이 맞지 않아 출력에 실패했습니다. 다시 질문해주세요.", None
+
 
 if __name__ == "__main__":
     # 테스트 실행
