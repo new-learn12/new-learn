@@ -167,9 +167,9 @@ def get_semiconductor_bot_result(history):
 </div>
 </div>
 """
-        return html_content.strip()
+        return html_content.strip(), None
     else:
-        return "답변을 생성하는 과정에서 형식이 맞지 않아 출력에 실패했습니다. 다시 질문해주세요."
+        return "답변을 생성하는 과정에서 형식이 맞지 않아 출력에 실패했습니다. 다시 질문해주세요.", None
 
 if __name__ == "__main__":
     # 테스트 실행
