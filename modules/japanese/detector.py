@@ -14,7 +14,8 @@ from enum import Enum
 try:
     from langdetect import detect, detect_langs, LangDetectException
 except ImportError:
-    raise ImportError("langdetect 라이브러리가 필요합니다. pip install langdetect 실행해주세요.")
+    raise ImportError(
+        "langdetect 라이브러리가 필요합니다. pip install langdetect 실행해주세요.")
 
 try:
     from groq import Groq
@@ -70,7 +71,8 @@ class HybridLanguageDetector:
         if groq_api_key:
             self.client = Groq(api_key=groq_api_key)
 
-    def _step1_regex_detection(self, text: str) -> Tuple[Language | None, float]:
+    def _step1_regex_detection(
+            self, text: str) -> Tuple[Language | None, float]:
         """
         단계 1: 정규표현식을 사용한 빠른 1차 분류
 
@@ -130,7 +132,8 @@ class HybridLanguageDetector:
         # 명확하지 않음 - 다음 단계로 넘김
         return None, 0.0
 
-    def _step2_langdetect_validation(self, text: str) -> Tuple[Language, float]:
+    def _step2_langdetect_validation(
+            self, text: str) -> Tuple[Language, float]:
         """
         단계 2: langdetect 라이브러리를 사용한 2차 검증
 

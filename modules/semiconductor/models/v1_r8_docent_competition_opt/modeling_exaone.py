@@ -55,7 +55,8 @@ class ExaoneRMSNorm(nn.Module):
         input_dtype = hidden_states.dtype
         hidden_states = hidden_states.to(torch.float32)
         variance = hidden_states.pow(2).mean(-1, keepdim=True)
-        hidden_states = hidden_states * torch.rsqrt(variance + self.variance_epsilon)
+        hidden_states = hidden_states * \
+            torch.rsqrt(variance + self.variance_epsilon)
         return self.weight * hidden_states.to(input_dtype)
 
     def extra_repr(self):
@@ -103,8 +104,10 @@ def repeat_kv(hidden_states: torch.Tensor, n_rep: int) -> torch.Tensor:
     batch, num_key_value_heads, slen, head_dim = hidden_states.shape
     if n_rep == 1:
         return hidden_states
-    hidden_states = hidden_states[:, :, None, :, :].expand(batch, num_key_value_heads, n_rep, slen, head_dim)
-    return hidden_states.reshape(batch, num_key_value_heads * n_rep, slen, head_dim)
+    hidden_states = hidden_states[:, :, None, :, :].expand(
+        batch, num_key_value_heads, n_rep, slen, head_dim)
+    return hidden_states.reshape(
+        batch, num_key_value_heads * n_rep, slen, head_dim)
 
 
 def eager_attention_forward(
@@ -125,8 +128,13 @@ def eager_attention_forward(
         causal_mask = attention_mask[:, :, :, : key_states.shape[-2]]
         attn_weights = attn_weights + causal_mask
 
-    attn_weights = nn.functional.softmax(attn_weights, dim=-1, dtype=torch.float32).to(query.dtype)
-    attn_weights = nn.functional.dropout(attn_weights, p=dropout, training=module.training)
+    attn_weights = nn.functional.softmax(
+        attn_weights,
+        dim=-1,
+        dtype=torch.float32).to(
+        query.dtype)
+    attn_weights = nn.functional.dropout(
+        attn_weights, p=dropout, training=module.training)
     attn_output = torch.matmul(attn_weights, value_states)
     attn_output = attn_output.transpose(1, 2).contiguous()
 
@@ -141,15 +149,35 @@ class ExaoneAttention(nn.Module):
         super().__init__()
         self.config = config
         self.layer_idx = layer_idx
-        self.head_dim = getattr(config, "head_dim", config.hidden_size // config.num_attention_heads)
+        self.head_dim = getattr(
+            config,
+            "head_dim",
+            config.hidden_size //
+            config.num_attention_heads)
         self.num_key_value_groups = config.num_attention_heads // config.num_key_value_heads
         self.scaling = self.head_dim**-0.5
         self.attention_dropout = config.attention_dropout
         self.is_causal = True
-        self.q_proj = nn.Linear(config.hidden_size, config.num_attention_heads * self.head_dim, bias=False)
-        self.k_proj = nn.Linear(config.hidden_size, config.num_key_value_heads * self.head_dim, bias=False)
-        self.v_proj = nn.Linear(config.hidden_size, config.num_key_value_heads * self.head_dim, bias=False)
-        self.out_proj = nn.Linear(config.num_attention_heads * self.head_dim, config.hidden_size, bias=False)
+        self.q_proj = nn.Linear(
+            config.hidden_size,
+            config.num_attention_heads *
+            self.head_dim,
+            bias=False)
+        self.k_proj = nn.Linear(
+            config.hidden_size,
+            config.num_key_value_heads *
+            self.head_dim,
+            bias=False)
+        self.v_proj = nn.Linear(
+            config.hidden_size,
+            config.num_key_value_heads *
+            self.head_dim,
+            bias=False)
+        self.out_proj = nn.Linear(
+            config.num_attention_heads *
+            self.head_dim,
+            config.hidden_size,
+            bias=False)
 
     def forward(
         self,
@@ -163,17 +191,26 @@ class ExaoneAttention(nn.Module):
         input_shape = hidden_states.shape[:-1]
         hidden_shape = (*input_shape, -1, self.head_dim)
 
-        query_states = self.q_proj(hidden_states).view(hidden_shape).transpose(1, 2)
-        key_states = self.k_proj(hidden_states).view(hidden_shape).transpose(1, 2)
-        value_states = self.v_proj(hidden_states).view(hidden_shape).transpose(1, 2)
+        query_states = self.q_proj(hidden_states).view(
+            hidden_shape).transpose(1, 2)
+        key_states = self.k_proj(hidden_states).view(
+            hidden_shape).transpose(1, 2)
+        value_states = self.v_proj(hidden_states).view(
+            hidden_shape).transpose(1, 2)
 
         cos, sin = position_embeddings
-        query_states, key_states = apply_rotary_pos_emb(query_states, key_states, cos, sin)
+        query_states, key_states = apply_rotary_pos_emb(
+            query_states, key_states, cos, sin)
 
         if past_key_values is not None:
-            # sin and cos are specific to RoPE models; cache_position needed for the static cache
-            cache_kwargs = {"sin": sin, "cos": cos, "cache_position": cache_position}
-            key_states, value_states = past_key_values.update(key_states, value_states, self.layer_idx, cache_kwargs)
+            # sin and cos are specific to RoPE models; cache_position needed
+            # for the static cache
+            cache_kwargs = {
+                "sin": sin,
+                "cos": cos,
+                "cache_position": cache_position}
+            key_states, value_states = past_key_values.update(
+                key_states, value_states, self.layer_idx, cache_kwargs)
 
         attention_interface: Callable = ALL_ATTENTION_FUNCTIONS.get_interface(
             self.config._attn_implementation, eager_attention_forward
@@ -229,9 +266,18 @@ class ExaoneMLP(nn.Module):
         self.config = config
         self.hidden_size = config.hidden_size
         self.intermediate_size = config.intermediate_size
-        self.c_fc_0 = nn.Linear(self.hidden_size, self.intermediate_size, bias=False)
-        self.c_fc_1 = nn.Linear(self.hidden_size, self.intermediate_size, bias=False)
-        self.c_proj = nn.Linear(self.intermediate_size, self.hidden_size, bias=False)
+        self.c_fc_0 = nn.Linear(
+            self.hidden_size,
+            self.intermediate_size,
+            bias=False)
+        self.c_fc_1 = nn.Linear(
+            self.hidden_size,
+            self.intermediate_size,
+            bias=False)
+        self.c_proj = nn.Linear(
+            self.intermediate_size,
+            self.hidden_size,
+            bias=False)
         self.act = ACT2FN[config.hidden_act]
 
     def forward(self, x):
@@ -244,9 +290,13 @@ class ExaoneDecoderLayer(GradientCheckpointingLayer):
         super().__init__()
         self.config = config
         self.hidden_size = config.hidden_size
-        self.ln_1 = ExaoneRMSNorm(hidden_size=self.hidden_size, eps=config.layer_norm_epsilon)
+        self.ln_1 = ExaoneRMSNorm(
+            hidden_size=self.hidden_size,
+            eps=config.layer_norm_epsilon)
         self.attn = ExaoneAttentionBlock(config, layer_id)
-        self.ln_2 = ExaoneRMSNorm(hidden_size=self.hidden_size, eps=config.layer_norm_epsilon)
+        self.ln_2 = ExaoneRMSNorm(
+            hidden_size=self.hidden_size,
+            eps=config.layer_norm_epsilon)
         self.mlp = ExaoneMLP(config)
 
     def forward(
@@ -320,7 +370,10 @@ class ExaoneRotaryEmbedding(nn.Module):
         inv_freq, self.attention_scaling = rope_init_fn(self.config, device)
 
         self.register_buffer("inv_freq", inv_freq, persistent=False)
-        self.register_buffer("original_inv_freq", inv_freq.clone(), persistent=False)
+        self.register_buffer(
+            "original_inv_freq",
+            inv_freq.clone(),
+            persistent=False)
 
     @staticmethod
     def compute_default_rope_parameters(
@@ -342,25 +395,36 @@ class ExaoneRotaryEmbedding(nn.Module):
             post-processing scaling factor applied to the computed cos/sin (unused in this type of RoPE).
         """
         base = config.rope_parameters["rope_theta"]
-        dim = getattr(config, "head_dim", None) or config.hidden_size // config.num_attention_heads
+        dim = getattr(
+            config,
+            "head_dim",
+            None) or config.hidden_size // config.num_attention_heads
 
         attention_factor = 1.0  # Unused in this type of RoPE
 
         # Compute the inverse frequencies
         inv_freq = 1.0 / (
-            base ** (torch.arange(0, dim, 2, dtype=torch.int64).to(device=device, dtype=torch.float) / dim)
+            base ** (torch.arange(0,
+                                  dim,
+                                  2,
+                                  dtype=torch.int64).to(device=device,
+                                                        dtype=torch.float) / dim)
         )
         return inv_freq, attention_factor
 
     @torch.no_grad()
-    @dynamic_rope_update  # power user: used with advanced RoPE types (e.g. dynamic rope)
+    # power user: used with advanced RoPE types (e.g. dynamic rope)
+    @dynamic_rope_update
     def forward(self, x, position_ids):
-        inv_freq_expanded = self.inv_freq[None, :, None].float().expand(position_ids.shape[0], -1, 1).to(x.device)
+        inv_freq_expanded = self.inv_freq[None, :, None].float().expand(
+            position_ids.shape[0], -1, 1).to(x.device)
         position_ids_expanded = position_ids[:, None, :].float()
 
-        device_type = x.device.type if isinstance(x.device.type, str) and x.device.type != "mps" else "cpu"
+        device_type = x.device.type if isinstance(
+            x.device.type, str) and x.device.type != "mps" else "cpu"
         with maybe_autocast(device_type=device_type, enabled=False):  # Force float32
-            freqs = (inv_freq_expanded.float() @ position_ids_expanded.float()).transpose(1, 2)
+            freqs = (inv_freq_expanded.float() @
+                     position_ids_expanded.float()).transpose(1, 2)
             emb = torch.cat((freqs, freqs), dim=-1)
             cos = emb.cos() * self.attention_scaling
             sin = emb.sin() * self.attention_scaling
@@ -377,10 +441,16 @@ class ExaoneModel(ExaonePreTrainedModel):
         self.padding_idx = config.pad_token_id
         self.vocab_size = config.vocab_size
 
-        self.wte = nn.Embedding(self.vocab_size, self.hidden_size, self.padding_idx)
+        self.wte = nn.Embedding(
+            self.vocab_size,
+            self.hidden_size,
+            self.padding_idx)
         self.drop = nn.Dropout(float(config.embed_dropout))
-        self.h = nn.ModuleList([ExaoneDecoderLayer(config, layer_id=i) for i in range(config.num_layers)])
-        self.ln_f = ExaoneRMSNorm(hidden_size=self.hidden_size, eps=config.layer_norm_epsilon)
+        self.h = nn.ModuleList([ExaoneDecoderLayer(config, layer_id=i)
+                               for i in range(config.num_layers)])
+        self.ln_f = ExaoneRMSNorm(
+            hidden_size=self.hidden_size,
+            eps=config.layer_norm_epsilon)
         self.rotary = ExaoneRotaryEmbedding(config)
 
         # Initialize weights and apply final processing
@@ -400,7 +470,8 @@ class ExaoneModel(ExaonePreTrainedModel):
         **kwargs: Unpack[TransformersKwargs],
     ) -> BaseModelOutputWithPast:
         if (input_ids is None) ^ (inputs_embeds is not None):
-            raise ValueError("You must specify exactly one of input_ids or inputs_embeds")
+            raise ValueError(
+                "You must specify exactly one of input_ids or inputs_embeds")
 
         if inputs_embeds is None:
             inputs_embeds: torch.Tensor = self.wte(input_ids)
@@ -409,9 +480,12 @@ class ExaoneModel(ExaonePreTrainedModel):
             past_key_values = DynamicCache(config=self.config)
 
         if cache_position is None:
-            past_seen_tokens = past_key_values.get_seq_length() if past_key_values is not None else 0
+            past_seen_tokens = past_key_values.get_seq_length(
+            ) if past_key_values is not None else 0
             cache_position: torch.Tensor = (
-                torch.arange(inputs_embeds.shape[1], device=inputs_embeds.device) + past_seen_tokens
+                torch.arange(
+                    inputs_embeds.shape[1],
+                    device=inputs_embeds.device) + past_seen_tokens
             )
 
         if position_ids is None:
@@ -427,7 +501,8 @@ class ExaoneModel(ExaonePreTrainedModel):
         )
 
         hidden_states = inputs_embeds
-        position_embeddings = self.rotary(hidden_states, position_ids=position_ids)
+        position_embeddings = self.rotary(
+            hidden_states, position_ids=position_ids)
 
         for decoder_layer in self.h[: self.config.num_layers]:
             hidden_states = decoder_layer(
@@ -458,7 +533,10 @@ class ExaoneForCausalLM(ExaonePreTrainedModel, GenerationMixin):
         super().__init__(config)
         self.transformer = ExaoneModel(config)
         self.vocab_size = config.vocab_size
-        self.lm_head = nn.Linear(config.hidden_size, config.vocab_size, bias=False)
+        self.lm_head = nn.Linear(
+            config.hidden_size,
+            config.vocab_size,
+            bias=False)
 
         # Initialize weights and apply final processing
         self.post_init()
@@ -523,13 +601,20 @@ class ExaoneForCausalLM(ExaonePreTrainedModel, GenerationMixin):
         )
 
         hidden_states = outputs.last_hidden_state
-        # Only compute necessary logits, and do not upcast them to float if we are not computing the loss
-        slice_indices = slice(-logits_to_keep, None) if isinstance(logits_to_keep, int) else logits_to_keep
+        # Only compute necessary logits, and do not upcast them to float if we
+        # are not computing the loss
+        slice_indices = slice(-logits_to_keep,
+                              None) if isinstance(logits_to_keep,
+                                                  int) else logits_to_keep
         logits = self.lm_head(hidden_states[:, slice_indices, :])
 
         loss = None
         if labels is not None:
-            loss = self.loss_function(logits=logits, labels=labels, vocab_size=self.config.vocab_size, **kwargs)
+            loss = self.loss_function(
+                logits=logits,
+                labels=labels,
+                vocab_size=self.config.vocab_size,
+                **kwargs)
 
         return CausalLMOutputWithPast(
             loss=loss,

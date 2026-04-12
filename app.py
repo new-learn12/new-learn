@@ -285,7 +285,8 @@ def render_messages(history):
             if "프랑스어 문장:" in c:
                 try:
                     parts = c.split("프랑스어 문장:")
-                    fr_text = parts[1].split('\n')[0].strip().replace('"', '&quot;')
+                    fr_text = parts[1].split(
+                        '\n')[0].strip().replace('"', '&quot;')
                     tts_html = f'<div style="margin-top:10px;"><button class="tts-btn" data-text="{fr_text}" data-lang="fr-FR">🇫🇷 발음 듣기</button></div>'
                 except Exception:
                     pass
@@ -345,16 +346,20 @@ def render_landing():
 
     cta_col1, cta_col2 = st.columns([1, 1])
     with cta_col1:
-        if st.button("챗봇 시작하기", key="landing_chat_start", type="primary", use_container_width=True):
+        if st.button("챗봇 시작하기", key="landing_chat_start",
+                     type="primary", use_container_width=True):
             st.session_state.page = "chat"
             st.session_state.histories.pop(st.session_state.subject, None)
             sync_query_params()
             st.rerun()
     with cta_col2:
-        if st.button("자세히 보기", key="landing_detail", use_container_width=True, type="secondary"):
+        if st.button("자세히 보기", key="landing_detail",
+                     use_container_width=True, type="secondary"):
             st.info("아래 과목을 선택하면 해당 과목 챗봇으로 바로 시작됩니다.")
 
-    st.markdown('<p class="hero-btn-note">원하는 전공 카드를 선택하면 해당 챗봇으로 즉시 이동합니다.</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="hero-btn-note">원하는 전공 카드를 선택하면 해당 챗봇으로 즉시 이동합니다.</p>',
+        unsafe_allow_html=True)
 
     st.markdown(
         """
@@ -379,7 +384,8 @@ def render_landing():
 """,
                 unsafe_allow_html=True,
             )
-            if st.button(f"{subject['name']} 시작", key=f"start_{subject['name']}", use_container_width=True):
+            if st.button(
+                    f"{subject['name']} 시작", key=f"start_{subject['name']}", use_container_width=True):
                 st.session_state.subject = subject["name"]
                 st.session_state.page = "chat"
                 st.session_state.histories.pop(subject["name"], None)
@@ -463,15 +469,15 @@ def render_chat():
             const buttons = parentDoc.querySelectorAll('.tts-btn:not(.bound)');
 
             buttons.forEach(btn => {
-                btn.classList.add('bound'); 
+                btn.classList.add('bound');
                 btn.addEventListener('click', function() {
                     const text = this.getAttribute('data-text');
                     const lang = this.getAttribute('data-lang');
-                    
+
                     if(text) {
                         window.parent.speechSynthesis.cancel();
                         const utterance = new window.parent.SpeechSynthesisUtterance(text);
-                        utterance.lang = lang; 
+                        utterance.lang = lang;
                         utterance.rate = 0.9;
                         utterance.volume = 1.0;
                         window.parent.speechSynthesis.speak(utterance);
@@ -493,7 +499,8 @@ def render_chat():
             history.append({"role": "user", "content": prompt, "time": now()})
             with st.spinner("생각 중...💭"):
                 response, ans_image = call_llm(subject, history)
-            history.append({"role": "bot", "content": response, "image": ans_image, "time": now()})
+            history.append({"role": "bot", "content": response,
+                           "image": ans_image, "time": now()})
             st.rerun()
 
 

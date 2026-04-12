@@ -83,7 +83,8 @@ def call_semi_llm(question):
     ]
 
     # 2. Chat Template 적용 및 답변 시작 가이드
-    prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+    prompt = tokenizer.apply_chat_template(
+        messages, tokenize=False, add_generation_prompt=True)
     prompt += "1단계(비유):"  # 모델이 서론 없이 바로 답변을 시작하도록 유도
 
     inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
@@ -100,7 +101,8 @@ def call_semi_llm(question):
         )
 
     # 3. 전체 텍스트 추출
-    generated_text = tokenizer.decode(outputs[0][len(inputs["input_ids"][0]):], skip_special_tokens=True).strip()
+    generated_text = tokenizer.decode(
+        outputs[0][len(inputs["input_ids"][0]):], skip_special_tokens=True).strip()
     full_content = "1단계(비유): " + generated_text
 
     # 4. app.py UI를 위한 섹션 분리 (정규표현식 활용)
@@ -144,7 +146,8 @@ def get_semiconductor_bot_result(history):
         step1 = parsed.get('1단계', '내용이 없습니다.')
         step2 = parsed.get('2단계', '내용이 없습니다.')
         step3 = parsed.get('3단계', '')
-        step3_formatted = str(step3).replace('\n', '<br>') if step3 else '용어 설명이 없습니다.'
+        step3_formatted = str(step3).replace(
+            '\n', '<br>') if step3 else '용어 설명이 없습니다.'
         step4 = parsed.get('4단계', '내용이 없습니다.')
 
         # UI용 HTML 카드 구성 (Streamlit 마크다운 충돌 방지를 위해 들여쓰기 제거)

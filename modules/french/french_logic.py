@@ -35,7 +35,9 @@ df['french'] = df['french'].fillna("")
 
 # 코퍼스 벡터화
 df['combined'] = df['korean'] + " " + df['french']
-corpus_embeddings = embedder.encode(df['combined'].tolist(), convert_to_tensor=True)
+corpus_embeddings = embedder.encode(
+    df['combined'].tolist(),
+    convert_to_tensor=True)
 print("데이터베이스 벡터화 완료!")
 
 # 2. 하이브리드 검색 로직
@@ -75,13 +77,13 @@ def get_french_bot_result(user_query):
     # [핵심 수정] 숫자(1. 2.)를 절대 쓰지 못하게 억제하고 템플릿을 고정함
     system_prompt = """당신은 'NEW LEARN' 플랫폼의 왕초보 전용 프랑스어 선생님입니다.
     사용자에게 다음 형식에 맞춰 '초개인화 해설'을 제공하세요.
-    
+
     [문법 조립 블록]
     - 문장을 단어별로 쪼개고 뜻 설명 (예: Je(나) - 주어)
-    
+
     [입문자 눈높이 해설]
     - 발음 팁과 파리 여행에서의 실제 쓰임새 설명
-    
+
     주의사항:
     - 절대 대괄호 앞에 숫자(1. 2. 등)를 붙이지 마세요.
     - 불필요한 줄바꿈을 남발하지 말고 촘촘하게 작성하세요."""
@@ -91,7 +93,8 @@ def get_french_bot_result(user_query):
         korean_text = matched['korean']
         pronunciation = matched['pronunciation']
         # CSV에 image_url 컬럼이 있는지 확인 후 반환
-        ans_image = matched['image_url'] if 'image_url' in matched and pd.notna(matched['image_url']) else None
+        ans_image = matched['image_url'] if 'image_url' in matched and pd.notna(
+            matched['image_url']) else None
 
         user_prompt = f"""
         [데이터베이스 정보]

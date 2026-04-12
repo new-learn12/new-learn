@@ -41,7 +41,8 @@ def _tokenize(text: str) -> list[str]:
     return re.findall(r"[가-힣a-zA-Z]+", text.lower())
 
 
-def _extract_pdf_text(section_file: str, page_start: int, page_end: int) -> str:
+def _extract_pdf_text(section_file: str, page_start: int,
+                      page_end: int) -> str:
     """
     section_file의 page_start ~ page_end-1 페이지에서 텍스트를 추출합니다.
     PDF가 없으면 빈 문자열을 반환합니다.

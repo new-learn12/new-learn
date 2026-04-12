@@ -27,7 +27,8 @@ def get_japanese_bot_result(history):
             if len(context) >= 3:
                 break
         context = context[-3:] if context else []
-        context_text = "\n".join([f"[{msg['role']}]: {msg['content']}" for msg in context])
+        context_text = "\n".join(
+            [f"[{msg['role']}]: {msg['content']}" for msg in context])
 
         prompt = f"""당신은 일본어 학습 튜터입니다. 문법/발음/회화를 간결히 설명하세요.
 반드시 **json** 형식으로만 응답해야 합니다.
@@ -56,11 +57,13 @@ def render_japanese_ui(history, render_messages_func, now_func):
     tab_col1, tab_col2, _ = st.columns([1, 1, 4])
 
     # 탭 버튼 UI
-    if tab_col1.button("회화 모드", key="btn_chat_mode", type="primary" if not st.session_state.jp_translation_mode else "secondary", use_container_width=True):
+    if tab_col1.button("회화 모드", key="btn_chat_mode",
+                       type="primary" if not st.session_state.jp_translation_mode else "secondary", use_container_width=True):
         st.session_state.jp_translation_mode = False
         st.rerun()
 
-    if tab_col2.button("번역 모드", key="btn_translation_mode", type="primary" if st.session_state.jp_translation_mode else "secondary", use_container_width=True):
+    if tab_col2.button("번역 모드", key="btn_translation_mode",
+                       type="primary" if st.session_state.jp_translation_mode else "secondary", use_container_width=True):
         st.session_state.jp_translation_mode = True
         st.rerun()
 
@@ -93,7 +96,8 @@ def render_translation_mode(subject: str):
     current_index = 0 if current_task == TaskType.KOREAN_TO_JAPANESE.value else 1
     selected = st.radio(
         "번역 방향",
-        [task_labels[TaskType.KOREAN_TO_JAPANESE.value], task_labels[TaskType.JAPANESE_TO_KOREAN.value]],
+        [task_labels[TaskType.KOREAN_TO_JAPANESE.value],
+         task_labels[TaskType.JAPANESE_TO_KOREAN.value]],
         index=current_index,
         horizontal=True,
         key="translation_task_radio",
@@ -112,7 +116,9 @@ def render_translation_mode(subject: str):
         TaskType.KOREAN_TO_JAPANESE.value: "한국어 문장을 입력하세요...",
         TaskType.JAPANESE_TO_KOREAN.value: "일본어 문장을 입력하세요...",
     }
-    prompt = st.chat_input(placeholders[selected_task], key="translation_input")
+    prompt = st.chat_input(
+        placeholders[selected_task],
+        key="translation_input")
     if prompt:
         st.session_state.translation_result = {}
         with st.spinner("번역 생성 중..."):
@@ -153,13 +159,15 @@ def render_translation_result(result: dict):
 
     task = result.get("task")
     if task == TaskType.KOREAN_TO_JAPANESE.value:
-        translated_text = result.get("translated_text_ruby") or result.get("translated_text", "")
+        translated_text = result.get(
+            "translated_text_ruby") or result.get("translated_text", "")
         st.markdown(
             f"<div style='padding:18px 20px;border:1px solid #dbe8f7;border-radius:16px;background:#f8fbff;line-height:1.7;'>{translated_text}</div>",
             unsafe_allow_html=True,
         )
 
-        original_text = result.get("original_text_highlighted") or result.get("original_text", "")
+        original_text = result.get(
+            "original_text_highlighted") or result.get("original_text", "")
         if original_text:
             st.markdown("**원문 한국어:**", unsafe_allow_html=True)
             st.markdown(original_text, unsafe_allow_html=True)
@@ -169,7 +177,8 @@ def render_translation_result(result: dict):
             if pronunciation:
                 st.markdown(f"**발음:** {pronunciation}")
 
-            variations = result.get("style_variations_processed") or result.get("style_variations", {})
+            variations = result.get("style_variations_processed") or result.get(
+                "style_variations", {})
             if variations:
                 for style, text in variations.items():
                     st.markdown(f"**{style}**", unsafe_allow_html=True)

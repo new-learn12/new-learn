@@ -64,7 +64,8 @@ class JapaneseTextProcessor:
             print(f"[Warning] 히라가나 변환 실패: {e}")
             return text
 
-    def _find_token_positions(self, text: str, tokens: List[str]) -> List[tuple[int, int, str]]:
+    def _find_token_positions(
+            self, text: str, tokens: List[str]) -> List[tuple[int, int, str]]:
         """
         텍스트에서 토큰들의 위치를 찾음
 
@@ -124,7 +125,8 @@ class JapaneseTextProcessor:
             print(f"[Warning] 형태소 분석 실패: {e}")
             return re.findall(r'\w+', text)
 
-    def add_ruby_tags(self, text: str, format_type: OutputFormat = OutputFormat.HTML) -> str:
+    def add_ruby_tags(self, text: str,
+                      format_type: OutputFormat = OutputFormat.HTML) -> str:
         """
         한자에 히라가나 루비 태그를 추가
 
@@ -162,7 +164,8 @@ class JapaneseTextProcessor:
 
                     # 한자가 포함되어 있고 히라가나가 다른 경우 루비 태그 추가
                     if self.kanji_pattern.search(orig) and orig != hira:
-                        result_parts.append(f"<ruby>{orig}<rt>{hira}</rt></ruby>")
+                        result_parts.append(
+                            f"<ruby>{orig}<rt>{hira}</rt></ruby>")
                     else:
                         result_parts.append(orig)
 
@@ -294,7 +297,8 @@ class JapaneseTextProcessor:
 
         try:
             # 번역된 텍스트에 루비 태그 추가 (일본어인 경우)
-            if 'translated_text' in result and result.get('task') == 'ko_to_ja':
+            if 'translated_text' in result and result.get(
+                    'task') == 'ko_to_ja':
                 translated_text = result['translated_text']
                 if include_ruby:
                     processed_result['translated_text_ruby'] = self.add_ruby_tags(
@@ -304,11 +308,13 @@ class JapaneseTextProcessor:
                     processed_result['translated_text_ruby'] = translated_text
 
             # 스타일 변형에도 루비 태그 추가
-            if 'style_variations' in result and isinstance(result['style_variations'], dict):
+            if 'style_variations' in result and isinstance(
+                    result['style_variations'], dict):
                 processed_variations = {}
                 for style, text in result['style_variations'].items():
                     if include_ruby:
-                        processed_variations[style] = self.add_ruby_tags(text, format_type)
+                        processed_variations[style] = self.add_ruby_tags(
+                            text, format_type)
                     else:
                         processed_variations[style] = text
 
@@ -337,7 +343,8 @@ class JapaneseTextProcessor:
 
         return processed_result
 
-    def extract_key_phrases(self, text: str, max_phrases: int = 5) -> List[str]:
+    def extract_key_phrases(self, text: str,
+                            max_phrases: int = 5) -> List[str]:
         """
         텍스트에서 핵심 구문 추출 (fugashi 활용)
 
@@ -388,8 +395,10 @@ if __name__ == "__main__":
     print()
 
     print("2. 토큰 하이라이팅 테스트:")
-    highlighted_html = processor.highlight_key_tokens(test_text, key_tokens, OutputFormat.HTML)
-    highlighted_md = processor.highlight_key_tokens(test_text, key_tokens, OutputFormat.MARKDOWN)
+    highlighted_html = processor.highlight_key_tokens(
+        test_text, key_tokens, OutputFormat.HTML)
+    highlighted_md = processor.highlight_key_tokens(
+        test_text, key_tokens, OutputFormat.MARKDOWN)
     print(f"원본: {test_text}")
     print(f"HTML: {highlighted_html}")
     print(f"Markdown: {highlighted_md}")
@@ -415,7 +424,8 @@ if __name__ == "__main__":
         }
     }
 
-    processed = processor.process_comprehensive_result(mock_result, OutputFormat.HTML)
+    processed = processor.process_comprehensive_result(
+        mock_result, OutputFormat.HTML)
     print("후처리된 번역 텍스트:", processed.get('translated_text_ruby', 'N/A'))
     print("후처리된 스타일 변형:", processed.get('style_variations_processed', {}))
     print("하이라이팅된 원본:", processed.get('original_text_highlighted', 'N/A'))

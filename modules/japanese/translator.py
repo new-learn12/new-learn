@@ -88,7 +88,8 @@ def load_ja_en_pipeline():
         device = 0 if torch.cuda.is_available() else -1
         print(f"[Info] Helsinki 모델을 {'GPU' if device == 0 else 'CPU'}로 로드합니다.")
 
-        return pipeline("translation_ja_to_en", model="Helsinki-NLP/opus-mt-ja-en", device=device, src_lang="ja", tgt_lang="en")
+        return pipeline("translation_ja_to_en", model="Helsinki-NLP/opus-mt-ja-en",
+                        device=device, src_lang="ja", tgt_lang="en")
     except Exception as e:
         print(f"[Warning] ja-en 로드 실패: {e}")
         return None
@@ -102,7 +103,8 @@ def load_en_ko_pipeline():
         device = 0 if torch.cuda.is_available() else -1
         print(f"[Info] Helsinki 모델을 {'GPU' if device == 0 else 'CPU'}로 로드합니다.")
 
-        return pipeline("translation_en_to_ko", model="Helsinki-NLP/opus-mt-tc-big-en-ko", device=device, src_lang="en", tgt_lang="ko")
+        return pipeline("translation_en_to_ko", model="Helsinki-NLP/opus-mt-tc-big-en-ko",
+                        device=device, src_lang="en", tgt_lang="ko")
     except Exception as e:
         print(f"[Warning] en-ko 로드 실패: {e}")
         return None
@@ -137,7 +139,8 @@ class AsymmetricTranslator:
 
         return self._ja_en_pipeline, self._en_ko_pipeline
 
-    def _grammar_check_with_gemini(self, text: str, source_lang: str) -> GrammarCheckResult:
+    def _grammar_check_with_gemini(
+            self, text: str, source_lang: str) -> GrammarCheckResult:
         """
         Gemini를 사용한 문법 검증 (Fail-Fast)
         """
@@ -162,17 +165,21 @@ class AsymmetricTranslator:
             )
 
             # 1. response 또는 response.choices 유효한지 검증
-            if not response or not hasattr(response, 'choices') or not response.choices or not response.choices[0].message.content:
-                raise ValueError("Gemini 응답이 비어있거나 유효하지 않습니다. (Safety Filter 등에 의한 차단 가능성)")
+            if not response or not hasattr(
+                    response, 'choices') or not response.choices or not response.choices[0].message.content:
+                raise ValueError(
+                    "Gemini 응답이 비어있거나 유효하지 않습니다. (Safety Filter 등에 의한 차단 가능성)")
 
             content = response.choices[0].message.content
             response_text = content.strip()
 
             # JSON 추출 (마크다운 제거)
             if "```json" in response_text:
-                response_text = response_text.split("```json")[1].split("```")[0].strip()
+                response_text = response_text.split(
+                    "```json")[1].split("```")[0].strip()
             elif "```" in response_text:
-                response_text = response_text.split("```")[1].split("```")[0].strip()
+                response_text = response_text.split(
+                    "```")[1].split("```")[0].strip()
 
             result = json.loads(response_text)
 
@@ -275,7 +282,8 @@ class AsymmetricTranslator:
             print(f"[Warning] Gemini 번역 실패: {e}")
             return "[번역 실패]"
 
-    def _comprehensive_translate_with_gemini(self, text: str) -> ComprehensiveResult:
+    def _comprehensive_translate_with_gemini(
+            self, text: str) -> ComprehensiveResult:
         """
         Task B: 단일 Gemini API 호출로 종합 번역 결과 생성
 
@@ -338,7 +346,12 @@ class AsymmetricTranslator:
             result = json.loads(response_text)
 
             # 필수 필드 검증
-            required_fields = ["is_correct", "translated_text", "style_variations", "key_tokens", "pronunciation"]
+            required_fields = [
+                "is_correct",
+                "translated_text",
+                "style_variations",
+                "key_tokens",
+                "pronunciation"]
             for field in required_fields:
                 if field not in result:
                     raise ValueError(f"필수 필드 누락: {field}")
@@ -511,10 +524,13 @@ if __name__ == "__main__":
 
             # Task 타입 검증
             print("✅ TaskType enum:", [t.value for t in TaskType])
-            print("✅ TranslationStyle enum:", [s.value for s in TranslationStyle])
+            print(
+                "✅ TranslationStyle enum:", [
+                    s.value for s in TranslationStyle])
 
             # 데이터 클래스 검증
-            sample_grammar = GrammarCheckResult(is_correct=True, confidence=0.9)
+            sample_grammar = GrammarCheckResult(
+                is_correct=True, confidence=0.9)
             sample_translation = TranslationResult(
                 original_text="test", translated_text="テスト",
                 style=TranslationStyle.NATURAL, method="gemini"
