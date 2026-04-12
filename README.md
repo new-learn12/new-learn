@@ -82,10 +82,11 @@ new-learn/
 3. 환경 변수 설정
    1. 프로젝트 루트 디렉토리에 `.env` 파일을 생성
    2. 발급받은 키 입력
-   ```text
-   # .env
-   GROQ_API_KEY={[https://console.groq.com/keys] 에서 발급받은 API 키}
-   ```
+    ```text
+    # .env
+    GROQ_API_KEY={[https://console.groq.com/keys] 에서 발급받은 API 키}
+    OPENAI_API_KEY2={OpenAI에서 발급받은 API 키}
+    ```
 4. 애플리케이션 실행
    ```bash
    streamlit run app.py
