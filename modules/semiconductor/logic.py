@@ -5,6 +5,7 @@ import os
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import re
+import streamlit as st
 
 # 1. 모델 설정
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -90,6 +91,47 @@ def call_semi_llm(question):
             parsed_data[key] = "내용을 생성 중입니다."
 
     return full_content, parsed_data
+
+def get_semiconductor_bot_result(history):
+    last_query = history[-1]["content"]
+    
+    with st.spinner("도슨트가 답변을 구성 중입니다..."):
+        raw, parsed = call_semi_llm(last_query)
+        
+    if parsed:
+        # 안전장치: 각 단계별 텍스트 추출 및 기본값 설정
+        step1 = parsed.get('1단계', '내용이 없습니다.')
+        step2 = parsed.get('2단계', '내용이 없습니다.')
+        step3 = parsed.get('3단계', '')
+        step3_formatted = str(step3).replace('\n', '<br>') if step3 else '용어 설명이 없습니다.'
+        step4 = parsed.get('4단계', '내용이 없습니다.')
+
+        # UI용 HTML 카드 구성 (Streamlit 마크다운 충돌 방지를 위해 들여쓰기 제거)
+        html_content = f"""
+<div style="line-height:1.7; font-family: 'Noto Sans KR', sans-serif;">
+<p style="font-size: 1.1em;"><b>✨ 비유로 이해하기:</b><br>{step1}</p>
+
+<div style="background:#f0f4f9; border-left:5px solid #185fa5; padding:15px; border-radius:8px; margin:15px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+<b style="color:#185fa5; font-size: 1.05em;">⚙️ 핵심 원리와 목적</b><br>
+<div style="margin-top:8px;">{step2}</div>
+</div>
+
+<div style="background:#ffffff; border:1px solid #e0e0e0; padding:12px; border-radius:8px; margin:10px 0;">
+<p style="font-size:0.92em; color:#444; margin-bottom:0;">
+<b>📚 도슨트의 용어 노트 / 보충 설명</b><br>
+<span style="color:#666;">{step3_formatted}</span>
+</p>
+</div>
+
+<div style="background:#fff4e6; border: 1px dashed #e67e22; padding:12px; border-radius:8px; margin-top:15px;">
+<p style="color:#d35400; font-weight:bold; margin-bottom:5px;">🧐 더 생각해 볼 사항 (심화 탐구)</p>
+<div style="color:#444;">{step4}</div>
+</div>
+</div>
+"""
+        return html_content.strip()
+    else:
+        return "답변을 생성하는 과정에서 형식이 맞지 않아 출력에 실패했습니다. 다시 질문해주세요."
 
 if __name__ == "__main__":
     # 테스트 실행
