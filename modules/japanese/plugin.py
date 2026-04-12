@@ -30,16 +30,34 @@ def get_japanese_bot_result(history):
         context_text = "\n".join(
             [f"[{msg['role']}]: {msg['content']}" for msg in context])
 
-        prompt = f"""당신은 일본어 학습 튜터입니다. 문법/발음/회화를 간결히 설명하세요.
-반드시 **json** 형식으로만 응답해야 합니다.
+        # 수정된 프롬프트 구성
+        prompt = f"""당신은 일본어 학습 튜터입니다. 사용자의 질문에 답변하세요.
 
-[이전 대화]
+### 지시 사항
+1. 반드시 아래의 **JSON 스키마**를 엄격히 준수하여 응답하세요.
+2. 답변 외에 서론이나 결론 등 다른 텍스트를 포함하지 마세요.
+3. JSON 키 값은 반드시 아래 영어 단어를 사용하세요.
+
+### JSON 스키마
+- "response": 일본어 문장 (한자/가나 혼용)
+- "meaning": 한국어 뜻
+- "pronunciation": 한글 독음 (예: 콘니치와)
+- "explanation": 문법이나 상황에 대한 간결한 설명
+
+### 응답 예시
+{{
+  "response": "こんにちは",
+  "meaning": "안녕 / 안녕하세요",
+  "pronunciation": "콘니치와",
+  "explanation": "낮에 사용하는 일반적인 인사말입니다."
+}}
+
+### 이전 대화 Context
 {context_text}
 
-[현재 질문]
+### 사용자 질문
 {history[-1]['content']}
-
-간결하고 명확한 답변을 300자 이내로 작성하세요."""
+"""
 
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
@@ -47,10 +65,48 @@ def get_japanese_bot_result(history):
             response_format={"type": "json_object"}
         )
         answer = response.choices[0].message.content
-        return answer if answer else "[응답 생성 실패]"
+        return format_japanese_answer_to_html(answer) if answer else "[응답 생성 실패]"
     except Exception as e:
         return f"[API 오류] {str(e)}"
 
+import json
+
+def format_japanese_answer_to_html(answer_str: str) -> str:
+    """JSON 형태의 답변 문자열을 파싱하여 깔끔한 HTML로 변환합니다."""
+    try:
+        # JSON 문자열 파싱
+        data = json.loads(answer_str)
+        
+        # 각 필드 추출 (안전하게 가져오기 위해 get 사용)
+        response = data.get("response", "")
+        meaning = data.get("meaning", "")
+        pronunciation = data.get("pronunciation", "")
+        explanation = data.get("explanation", "")
+        
+        # HTML 템플릿 작성 (인라인 CSS 사용)
+        html_content = f"""
+        <div style="padding: 16px; border: 1px solid #dbe8f7; border-radius: 12px; background-color: #f8fbff; font-family: sans-serif; line-height: 1.6;">
+            <div style="font-size: 1.2em; font-weight: bold; color: #1e3a8a; margin-bottom: 8px;">
+                🇯🇵 {response}
+            </div>
+            <div style="margin-bottom: 4px;">
+                <span style="background-color: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; font-weight: bold; margin-right: 6px;">의미</span>
+                <span>{meaning}</span>
+            </div>
+            <div style="margin-bottom: 12px;">
+                <span style="background-color: #f3e8ff; color: #7e22ce; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; font-weight: bold; margin-right: 6px;">발음</span>
+                <span>{pronunciation}</span>
+            </div>
+            <hr style="border: none; border-top: 1px dashed #cbd5e1; margin: 10px 0;">
+            <div style="color: #475569; font-size: 0.95em;">
+                <strong>💡 설명:</strong> {explanation}
+            </div>
+        </div>
+        """
+        return html_content
+    except json.JSONDecodeError:
+        # JSON 형식이 아닌 일반 텍스트로 왔을 경우를 대비한 예외 처리
+        return f"<div style='padding: 16px;'>{answer_str}</div>"
 
 def render_japanese_ui(history, render_messages_func, now_func):
     """일본어 전용 UI 렌더링 (회화/번역 탭 분기)"""
