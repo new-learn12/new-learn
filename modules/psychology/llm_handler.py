@@ -74,7 +74,7 @@ def _text_to_html(text: str) -> str:
     return text.replace("\n", "<br>")
 
 
-def call_llm(subject: str, history: list[dict]) -> str:
+def get_psychology_bot_result(subject: str, history: list[dict]) -> tuple:
     """
     app.py에서 호출하는 메인 함수.
     GitHub Models API를 통해 응답을 생성하고 HTML 문자열로 반환.
@@ -87,7 +87,7 @@ def call_llm(subject: str, history: list[dict]) -> str:
             "GitHub Token이 설정되지 않았습니다.<br>"
             "<code>.streamlit/secrets.toml</code>에 "
             "<code>GITHUB_TOKEN = \"ghp_...\"</code>을 추가해 주세요."
-        )
+        ), None
 
     # OpenAI 클라이언트 → GitHub Models 엔드포인트로 연결
     client = OpenAI(
@@ -101,7 +101,7 @@ def call_llm(subject: str, history: list[dict]) -> str:
     api_messages = _build_api_messages(history)
 
     if not api_messages or api_messages[-1]["role"] != "user":
-        return "질문을 인식하지 못했습니다. 다시 입력해 주세요."
+        return "질문을 인식하지 못했습니다. 다시 입력해 주세요.", None
 
     try:
         response = client.chat.completions.create(
@@ -114,7 +114,7 @@ def call_llm(subject: str, history: list[dict]) -> str:
             temperature=0.7,
         )
         answer = response.choices[0].message.content or ""
-        return _text_to_html(answer)
+        return _text_to_html(answer), None
 
     except AuthenticationError:
         return (
@@ -122,6 +122,6 @@ def call_llm(subject: str, history: list[dict]) -> str:
             "Token에 <b>models:read</b> 권한이 있는지 확인해 주세요."
         )
     except RateLimitError:
-        return "요청 한도를 초과했습니다. 잠시 후 다시 시도해 주세요."
+        return "요청 한도를 초과했습니다. 잠시 후 다시 시도해 주세요.", None
     except Exception as e:
-        return f"오류가 발생했습니다: {str(e)}"
+        return f"오류가 발생했습니다: {str(e)}", None
