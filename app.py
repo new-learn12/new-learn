@@ -271,19 +271,30 @@ def call_llm(subject, history):
     # 1. 반도체 과목일 경우 전문 도슨트 로직 실행
     if subject == "반도체":
         with st.spinner("도슨트가 답변을 구성 중입니다..."):
-            # logic.py의 함수 호출
             raw, parsed = call_semi_llm(last_query)
             
         if parsed:
-            # UI용 HTML 카드 구성
+            # UI용 HTML 카드 구성 (4단계 심화 탐구 및 3단계 유연성 반영)
             return f"""
-            <div style="line-height:1.6;">
-                <p><b>💡 비유:</b> {parsed.get('1단계', '')}</p>
-                <div style="background:#f0f4f9; border-left:4px solid #185fa5; padding:12px; border-radius:4px; margin:10px 0;">
-                    <b>⚙️ 기술 설명:</b><br>{parsed.get('2단계', '')}
+            <div style="line-height:1.7; font-family: 'Noto Sans KR', sans-serif;">
+                <p style="font-size: 1.1em;"><b>✨ 비유로 이해하기:</b><br>{parsed.get('1단계', '')}</p>
+                
+                <div style="background:#f0f4f9; border-left:5px solid #185fa5; padding:15px; border-radius:8px; margin:15px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                    <b style="color:#185fa5; font-size: 1.05em;">⚙️ 핵심 원리와 목적</b><br>
+                    <div style="margin-top:8px;">{parsed.get('2단계', '')}</div>
                 </div>
-                <p style="font-size:0.9em; color:#555;"><b>📚 핵심 용어:</b><br>{parsed.get('3단계', '').replace('/', '<br>')}</p>
-                <p style="color:#185fa5; font-weight:bold; margin-top:10px;">❓ {parsed.get('4단계', '')}</p>
+                
+                <div style="background:#ffffff; border:1px solid #e0e0e0; padding:12px; border-radius:8px; margin:10px 0;">
+                    <p style="font-size:0.92em; color:#444; margin-bottom:0;">
+                        <b>📚 도슨트의 용어 노트 / 보충 설명</b><br>
+                        <span style="color:#666;">{parsed.get('3단계', '').replace('/', '<br>• ')}</span>
+                    </p>
+                </div>
+                
+                <div style="background:#fff4e6; border: 1px dashed #e67e22; padding:12px; border-radius:8px; margin-top:15px;">
+                    <p style="color:#d35400; font-weight:bold; margin-bottom:5px;">🧐 더 생각해 볼 사항 (심화 탐구)</p>
+                    <div style="color:#444;">{parsed.get('4단계', '')}</div>
+                </div>
             </div>
             """
         else:
@@ -292,8 +303,8 @@ def call_llm(subject, history):
     # 2. 그 외 과목 (추후 확장 가능)
     short = f'{last_query[:40]}{"..." if len(last_query) > 40 else ""}'
     return f'"{short}"에 대한 {subject} 학습 답변입니다.<br>해당 과목의 전용 로직이 아직 연결되지 않았습니다.'
-    # 다른 과목 기본 응답
-    return f"{subject} 튜터 준비 중입니다. 질문하신 내용은 '{last_query[:20]}...' 입니다."
+
+
 def render_landing():
     st.markdown(
         """
