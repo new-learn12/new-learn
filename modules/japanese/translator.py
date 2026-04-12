@@ -505,7 +505,6 @@ class AsymmetricTranslator:
 
 # ─── 테스트 코드 ───
 if __name__ == "__main__":
-    import os
     from dotenv import load_dotenv
 
     if os.path.exists(".env"):
@@ -539,7 +538,7 @@ if __name__ == "__main__":
                 is_correct=True, translated_text="テスト",
                 style_variations={"casual": "テスト"}, key_tokens=["test"], pronunciation="tesuto"
             )
-            print(f"✅ 데이터 클래스 생성 성공")
+            print("✅ 데이터 클래스 생성 성공")
 
             print("\n🎉 구조 검증 완료! API 키를 설정한 후 실제 테스트를 진행하세요.")
 

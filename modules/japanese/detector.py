@@ -12,7 +12,7 @@ from typing import Tuple, Literal
 from enum import Enum
 
 try:
-    from langdetect import detect, detect_langs, LangDetectException
+    from langdetect import detect_langs, LangDetectException
 except ImportError:
     raise ImportError(
         "langdetect 라이브러리가 필요합니다. pip install langdetect 실행해주세요.")

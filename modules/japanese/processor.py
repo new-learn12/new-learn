@@ -8,7 +8,7 @@
 """
 
 import re
-from typing import List, Optional, Dict, Any, Literal
+from typing import List, Dict, Any
 from enum import Enum
 
 try:
@@ -18,7 +18,6 @@ except ImportError:
 
 try:
     import fugashi
-    import unidic_lite
 except ImportError:
     print("[Warning] fugashi 라이브러리가 설치되지 않았습니다. 형태소 분석 기능이 제한됩니다.")
     fugashi = None

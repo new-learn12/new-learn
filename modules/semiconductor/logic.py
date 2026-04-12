@@ -25,7 +25,7 @@ def load_model():
 
     # 2단계: 로드 시도
     try:
-        print(f"📦 반도체 도슨트 모델 로딩 중...")
+        print("📦 반도체 도슨트 모델 로딩 중...")
 
         # 토크나이저 로드 (에러 방지를 위해 use_fast=False 권장)
         tokenizer = AutoTokenizer.from_pretrained(
