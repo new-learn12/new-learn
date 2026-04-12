@@ -320,7 +320,7 @@ class AsymmetricTranslator:
         normalized_styles = {}
         for style in required_styles:
             value = style_variations.get(style)
-            normalized_styles[style] = str(value).strip() if value is not None else translated_text
+            normalized_styles[style] = str(value).strip() if value is not None else ""
 
         key_tokens = raw.get("key_tokens")
         if isinstance(key_tokens, list):

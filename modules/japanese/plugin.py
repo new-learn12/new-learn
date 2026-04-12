@@ -29,13 +29,13 @@ def _format_japanese_chat_response(answer: str) -> str:
     cleaned = _strip_code_fence(answer)
     try:
         parsed = json.loads(cleaned)
-    except Exception:
+    except json.JSONDecodeError:
         return cleaned
 
     if isinstance(parsed, dict):
         if all(k in parsed for k in CHAT_KEYS):
             return "\n".join(
-                [f"**{k}:** {parsed.get(k, '')}" for k in CHAT_KEYS]
+                [f"**{k}:** {parsed[k]}" for k in CHAT_KEYS]
             )
 
         if isinstance(parsed.get(BASIC_CONVERSATION_KEY), dict):
