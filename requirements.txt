@@ -6,3 +6,6 @@ pdfplumber
 pandas
 torch
 sentence-transformers
+protobuf
+transformers
+sentencepiece
