@@ -11,21 +11,59 @@ import streamlit as st
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_DIR = os.path.join(BASE_DIR, "models", "v1_r8_docent_competition_opt")
 
-print(f"📦 반도체 도슨트 모델 로딩 중...")
-tokenizer = AutoTokenizer.from_pretrained(MODEL_DIR, trust_remote_code=True)
-model = AutoModelForCausalLM.from_pretrained(
-    MODEL_DIR, 
-    torch_dtype=torch.bfloat16, 
-    device_map="auto", 
-    trust_remote_code=True
-)
-model.eval()
+# 전역 변수로 초기화
+tokenizer = None
+model = None
+
+def load_model():
+    global tokenizer, model
+    
+    # 1단계: 폴더 존재 여부 확인
+    if not os.path.exists(MODEL_DIR):
+        print(f"⚠️ 경고: 모델 디렉토리를 찾을 수 없습니다. ({MODEL_DIR})")
+        return False
+
+    # 2단계: 로드 시도
+    try:
+        print(f"📦 반도체 도슨트 모델 로딩 중...")
+        
+        # 토크나이저 로드 (에러 방지를 위해 use_fast=False 권장)
+        tokenizer = AutoTokenizer.from_pretrained(
+            MODEL_DIR, 
+            trust_remote_code=True,
+            use_fast=False 
+        )
+        
+        # 모델 로드
+        model = AutoModelForCausalLM.from_pretrained(
+            MODEL_DIR, 
+            torch_dtype=torch.bfloat16, 
+            device_map="auto", 
+            trust_remote_code=True
+        )
+        model.eval()
+        print("✅ 모델 로드 성공!")
+        return True
+
+    except Exception as e:
+        print(f"❌ 모델 로드 중 에러 발생: {e}")
+        # 로드 실패 시 변수 초기화
+        tokenizer = None
+        model = None
+        return False
+
+# 실행
+model_loaded = load_model()
 
 def call_semi_llm(question):
     """
     JSON 강제 없이 compare_model.py의 고성능 서술형 답변을 생성하고,
     app.py 호환을 위해 텍스트를 단계별로 자릅니다.
     """
+    if model is None or tokenizer is None:
+        error_msg = "현재 반도체 도슨트 모델을 불러올 수 없습니다. 경로를 확인해주세요."
+        return error_msg, {k: error_msg for k in ["1단계", "2단계", "3단계", "4단계"]}
+    
     # 1. 시스템 프롬프트: compare_model.py 스타일 (JSON 언급 삭제)
     messages = [
         {
