@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 
 # ✅ 프로젝트 루트에 있는 .env 파일을 읽어와서 시스템 환경 변수로 등록합니다.
 load_dotenv()
+GITHUB_MODELS_ENDPOINT = "https://models.inference.ai.azure.com"
 
 # --- 경로 설정 로직 추가 ---
 # 현재 파일(french_logic.py)의 위치: project_root/modules/french/
@@ -65,12 +66,12 @@ def search_hybrid(query):
 
 
 def get_french_bot_result(user_query):
-    # 클라우드 서버(DigitalOcean) 환경 변수에서 OpenAI 키를 읽습니다.
-    MY_OPENAI_KEY = os.environ.get("OPENAI_API_KEY", "").strip()
+    # 심리학 모듈과 동일한 공통 키를 우선 사용합니다.
+    MY_OPENAI_KEY = os.environ.get("OPENAI_API_KEY2", "").strip() or os.environ.get("OPENAI_API_KEY", "").strip()
 
     # 만약 서버에 키가 세팅 안 되어 있으면 에러 방지용 안내문 출력
     if not MY_OPENAI_KEY:
-        return "시스템 오류: 서버에 OpenAI API 키가 설정되지 않았습니다. 관리자에게 문의하세요.", None
+        return "시스템 오류: 서버에 API 키가 설정되지 않았습니다. OPENAI_API_KEY2를 확인해 주세요.", None
 
     matched = search_hybrid(user_query)
 
@@ -113,7 +114,7 @@ def get_french_bot_result(user_query):
         prefix = ""
 
     try:
-        client = OpenAI(api_key=MY_OPENAI_KEY)
+        client = OpenAI(base_url=GITHUB_MODELS_ENDPOINT, api_key=MY_OPENAI_KEY)
         response = client.chat.completions.create(
             messages=[
                 {"role": "system", "content": system_prompt},
