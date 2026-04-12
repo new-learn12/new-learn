@@ -278,7 +278,7 @@ def call_llm(subject, history):
             step1 = parsed.get('1단계', '내용이 없습니다.')
             step2 = parsed.get('2단계', '내용이 없습니다.')
             step3 = parsed.get('3단계', '')
-            step3_formatted = str(step3).replace('/', '<br>• ') if step3 else '용어 설명이 없습니다.'
+            step3_formatted = str(step3).replace('\n', '<br>') if step3 else '용어 설명이 없습니다.'
             step4 = parsed.get('4단계', '내용이 없습니다.')
 
             # UI용 HTML 카드 구성 (Streamlit 마크다운 충돌 방지를 위해 들여쓰기 제거)
