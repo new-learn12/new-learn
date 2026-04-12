@@ -253,26 +253,27 @@ def render_messages(history):
         c = msg["content"]
         img = msg.get("image")
         
-        # 1. 프랑스어 챗봇 파일의 텍스트 전처리 로직 이식
+        # 텍스트 전처리
         c_display = c.strip()
         c_display = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', c_display)
-        c_display = re.sub(r'\n+', '\n', c_display).replace('\n[', '\n\n[')
-        c_display = c_display.replace('프랑스어 문장:', '<b>프랑스어 문장:</b>')
+        c_display = c_display.replace('\n', '<br>')
 
         if msg["role"] == "bot":
-            # 2. 프랑스어 챗봇 파일의 TTS 및 이미지 처리 로직 이식
+            # TTS 처리 (프랑스어 전용)
             tts_html = ""
-            if "프랑스어 문장:" in c:
+            if st.session_state.subject == "프랑스어" and "프랑스어 문장:" in c:
                 try:
                     parts = c.split("프랑스어 문장:")
-                    fr_text = parts[1].split('\n')[0].strip().replace('"', '&quot;')
+                    fr_text = parts[1].split('<br>')[0].strip().replace('"', '&quot;')
                     tts_html = f'<div style="margin-top:10px;"><button class="tts-btn" data-text="{fr_text}" data-lang="fr-FR">🇫🇷 발음 듣기</button></div>'
                 except Exception:
                     pass
             
-            img_html = f'<img src="{img}" style="margin-top:8px; max-width:250px; border-radius:10px; display:block;">' if img else ""
+            # 이미지 처리: 데이터가 있을 때만 태그 생성, 없으면 변수 자체를 빈 문자열로!
+            img_html = ""
+            if img is not None and img != "":
+                img_html = f'<img src="{img}" style="margin-top:8px; max-width:100%; border-radius:10px; display:block;">'
             
-            # 3. 심리 챗봇 파일의 예쁜 HTML 디자인 껍데기로 감싸기
             rows.append(
                 f'<div class="msg-row">'
                 f'<div class="avatar avatar-bot">봇</div>'
@@ -280,7 +281,6 @@ def render_messages(history):
                 f'<div class="msg-time">{t}</div></div></div>'
             )
         else:
-            # 유저 메시지 처리 (심리 챗봇 파일 디자인 유지)
             rows.append(
                 f'<div class="msg-row user">'
                 f'<div class="avatar avatar-user">나</div>'
@@ -456,12 +456,33 @@ def render_chat():
     </script>
     """, width=0, height=0)
 
-    # 채팅 입력 부분 유지
+# 3. 채팅 입력 및 응답 처리 (이 부분을 교체하세요)
     if prompt := st.chat_input(f"{subject}에 대해 질문하세요..."):
+        # 사용자 메시지 추가
         history.append({"role": "user", "content": prompt, "time": now()})
+        
         with st.spinner("생각 중...💭"):
-            response, ans_image, *_ = call_llm(subject, history)
-        history.append({"role": "bot", "content": response, "image": ans_image, "time": now()})
+            # 1. call_llm 호출 결과를 result로 통째로 받음
+            result = call_llm(subject, history)
+            
+            # 2. 결과값이 (텍스트, 이미지) 튜플인지, 아니면 그냥 텍스트인지 체크
+            if isinstance(result, tuple):
+                response = result[0]
+                # 이미지가 있으면 가져오고, 없으면 명확하게 None 처리
+                ans_image = result[1] if len(result) > 1 else None
+            else:
+                response = result
+                ans_image = None
+        
+        # 3. 봇 메시지 추가 (image가 None이면 render_messages에서 엑박을 띄우지 않음)
+        history.append({
+            "role": "bot", 
+            "content": response, 
+            "image": ans_image, 
+            "time": now()
+        })
+        
+        # 4. 화면 즉시 갱신
         st.rerun()
 
 # --- 앱 실행 ---
