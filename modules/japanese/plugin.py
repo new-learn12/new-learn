@@ -17,7 +17,7 @@ def get_japanese_bot_result(history):
         load_dotenv()
     api_key = os.getenv("OPENAI_API_KEY2", "").strip()
     if not api_key:
-        return "[오류] OPENAI_API_KEY2가 설정되지 않았습니다."
+        return "[오류] 서버에 OPENAI_API_KEY2가 설정되지 않았습니다. 관리자에게 문의하세요."
 
     try:
         client = OpenAI(base_url=GITHUB_MODELS_ENDPOINT, api_key=api_key)
