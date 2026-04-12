@@ -324,7 +324,11 @@ class AsymmetricTranslator:
 
         key_tokens = raw.get("key_tokens")
         if isinstance(key_tokens, list):
-            normalized_tokens = [str(token).strip() for token in key_tokens if str(token).strip()]
+            normalized_tokens = []
+            for token in key_tokens:
+                stripped = str(token).strip()
+                if stripped:
+                    normalized_tokens.append(stripped)
         elif isinstance(key_tokens, str):
             normalized_tokens = [t.strip() for t in key_tokens.split(",") if t.strip()]
         else:
