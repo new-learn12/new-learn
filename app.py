@@ -5,6 +5,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 from modules.french.french_logic import get_french_bot_result
+from modules.japanese.plugin import render_japanese_ui, get_japanese_bot_result
 from modules.psychology.llm_handler import get_psychology_bot_result
 from modules.semiconductor.logic import get_semiconductor_bot_result
 
@@ -98,6 +99,20 @@ def init_state():
             del st.query_params["start"]
         except Exception:
             pass
+        
+    # --- 일본어 모듈 전용 세션 상태 ---
+    if "jp_translation_mode" not in st.session_state:
+        st.session_state.jp_translation_mode = False
+    if "translation_task" not in st.session_state:
+        st.session_state.translation_task = "KOREAN_TO_JAPANESE" # TaskType 값 매핑
+    if "translation_result" not in st.session_state:
+        st.session_state.translation_result = {}
+    if "translator_error" not in st.session_state:
+        st.session_state.translator_error = None
+        
+    # 다른 과목으로 이동 시 번역 모드 초기화
+    if st.session_state.subject != "일본어":
+        st.session_state.jp_translation_mode = False
 
 def inject_styles(current_page):
     sidebar_visibility = "display:none!important;" if current_page == "landing" else ""
@@ -300,6 +315,8 @@ def call_llm(subject, history):
         return get_psychology_bot_result(prompt, history)
     elif subject == "반도체":
         return get_semiconductor_bot_result(history)
+    elif subject == "일본어":
+        return get_japanese_bot_result(history), None
     return f"현재 {subject} 학습봇은 준비 중입니다.", None
 
 def render_landing():
@@ -409,20 +426,28 @@ def render_chat():
     subject = st.session_state.subject
     history = get_history(subject)
 
-    # 심리 챗봇 파일의 예쁜 채팅창 렌더링
-    st.markdown(
-        f"""
-<div class="app-wrapper">
-  <div class="chat-area">
-    <div class="chat-header">
-      <span class="badge-subject">{subject}</span>
+    
+    # 1. 커스텀 UI 렌더링 분기 (UI 탈취 플래그)
+    skip_main_input = False
+    
+    if subject == "일본어":
+        # 일본어 모듈은 내부에서 탭을 그리고, 번역 모드일 경우 자체 input을 쓰므로 skip_main_input 플래그를 받아옴
+        skip_main_input = render_japanese_ui(history, render_messages, now)
+    else:
+        # 심리 챗봇 파일의 예쁜 채팅창 렌더링
+        st.markdown(
+            f"""
+    <div class="app-wrapper">
+      <div class="chat-area">
+        <div class="chat-header">
+          <span class="badge-subject">{subject}</span>
+        </div>
+        <div class="chat-messages">{render_messages(history)}</div>
+      </div>
     </div>
-    <div class="chat-messages">{render_messages(history)}</div>
-  </div>
-</div>
-    """,
-        unsafe_allow_html=True,
-    )
+        """,
+            unsafe_allow_html=True,
+        )
     
     # === 프랑스어 챗봇 파일에서 가져온 필수 Javascript 삽입 부분 ===
     components.html("""
@@ -457,12 +482,14 @@ def render_chat():
     """, width=0, height=0)
 
     # 채팅 입력 부분 유지
-    if prompt := st.chat_input(f"{subject}에 대해 질문하세요..."):
-        history.append({"role": "user", "content": prompt, "time": now()})
-        with st.spinner("생각 중...💭"):
-            response, ans_image = call_llm(subject, history)
-        history.append({"role": "bot", "content": response, "image": ans_image, "time": now()})
-        st.rerun()
+    # 2. 메인 채팅 입력창 (skip_main_input이 False일 때만 렌더링하여 충돌 방지)
+    if not skip_main_input:
+        if prompt := st.chat_input(f"{subject}에 대해 질문하세요..."):
+            history.append({"role": "user", "content": prompt, "time": now()})
+            with st.spinner("생각 중...💭"):
+                response, ans_image = call_llm(subject, history)
+            history.append({"role": "bot", "content": response, "image": ans_image, "time": now()})
+            st.rerun()
 
 # --- 앱 실행 ---
 init_state()

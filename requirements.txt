@@ -14,4 +14,12 @@ protobuf                 # 데이터 직렬화 라이브러리 (성능 및 호�
 
 # --- [LLM API & Utilities] ---
 openai                   # OpenAI (GPT) API 사용
+groq                     # Groq API 사용
+python-dotenv            # .env 파일로부터 환경 변수 로드 (로컬 개발용)
 datetime                 # 날짜 및 시간 처리 (표준 라이브러리나 필요시 명시)
+
+# --- [언어 감지 및 일본어 전용 처리] ---
+langdetect               # 입력 텍스트의 언어(한국어/일본어 등) 판별
+pykakasi                 # 일본어(한자/가나)를 로마자나 히라가나로 변환
+fugashi                  # 일본어 형태소 분석기 (MeCab 기반)
+unidic-lite              # 일본어 분석을 위한 경량 사전 데이터
