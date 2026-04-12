@@ -69,7 +69,7 @@ class HybridLanguageDetector:
     def __init__(self, llm_api_key: str | None = None):
         """
         Args:
-            llm_api_key: GitHub Models API 키 (없으면 2단계까지만 동작)
+            llm_api_key: GitHub Models API 키 (OPENAI_API_KEY2 또는 OPENAI_API_KEY, 없으면 2단계까지만 동작)
         """
         if llm_api_key:
             self.client = OpenAI(

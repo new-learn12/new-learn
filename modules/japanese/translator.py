@@ -120,7 +120,7 @@ class AsymmetricTranslator:
     def __init__(self, llm_api_key: str):
         """
         Args:
-            llm_api_key: GitHub Models API 키
+            llm_api_key: GitHub Models API 키 (OPENAI_API_KEY2 또는 OPENAI_API_KEY)
         """
         self.client = OpenAI(
             base_url=GITHUB_MODELS_ENDPOINT,
