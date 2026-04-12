@@ -92,6 +92,7 @@ def init_state():
     if query_subject in SUBJECT_NAMES:
         st.session_state.subject = query_subject
     if query_start == "1" and st.session_state.subject in st.session_state.histories:
+        # 랜딩에서 과목을 눌러 진입하면 해당 과목 대화를 새로 시작한다.
         st.session_state.histories.pop(st.session_state.subject, None)
         try:
             del st.query_params["start"]
@@ -252,12 +253,14 @@ def render_messages(history):
         c = msg["content"]
         img = msg.get("image")
         
+        # 1. 프랑스어 챗봇 파일의 텍스트 전처리 로직 이식
         c_display = c.strip()
         c_display = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', c_display)
         c_display = re.sub(r'\n+', '\n', c_display).replace('\n[', '\n\n[')
         c_display = c_display.replace('프랑스어 문장:', '<b>프랑스어 문장:</b>')
 
         if msg["role"] == "bot":
+            # 2. 프랑스어 챗봇 파일의 TTS 및 이미지 처리 로직 이식
             tts_html = ""
             if "프랑스어 문장:" in c:
                 try:
@@ -269,6 +272,7 @@ def render_messages(history):
             
             img_html = f'<img src="{img}" style="margin-top:8px; max-width:250px; border-radius:10px; display:block;">' if img else ""
             
+            # 3. 심리 챗봇 파일의 예쁜 HTML 디자인 껍데기로 감싸기
             rows.append(
                 f'<div class="msg-row">'
                 f'<div class="avatar avatar-bot">봇</div>'
@@ -276,6 +280,7 @@ def render_messages(history):
                 f'<div class="msg-time">{t}</div></div></div>'
             )
         else:
+            # 유저 메시지 처리 (심리 챗봇 파일 디자인 유지)
             rows.append(
                 f'<div class="msg-row user">'
                 f'<div class="avatar avatar-user">나</div>'
@@ -404,6 +409,7 @@ def render_chat():
     subject = st.session_state.subject
     history = get_history(subject)
 
+    # 심리 챗봇 파일의 예쁜 채팅창 렌더링
     st.markdown(
         f"""
 <div class="app-wrapper">
@@ -418,6 +424,7 @@ def render_chat():
         unsafe_allow_html=True,
     )
     
+    # === 프랑스어 챗봇 파일에서 가져온 필수 Javascript 삽입 부분 ===
     components.html("""
     <script>
     function attachEvents() {
@@ -445,10 +452,11 @@ def render_chat():
     }
 
     attachEvents();
-    setInterval(attachEvents, 500);
+    setInterval(attachEvents, 500); // 렌더링 갱신 시 이벤트 재바인딩
     </script>
     """, width=0, height=0)
 
+    # 채팅 입력 부분 유지
     if prompt := st.chat_input(f"{subject}에 대해 질문하세요..."):
         history.append({"role": "user", "content": prompt, "time": now()})
         with st.spinner("생각 중...💭"):
