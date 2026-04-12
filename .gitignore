@@ -1,3 +1,13 @@
+# 데이터 파일 제외
+*.jsonl
+*.json
+data/
+
+# 파이썬 캐시 및 가상환경 제외
+__pycache__/
+.venv/
+.env
+
 # 환경변수 파일 (절대 올리지 말 것!)
 .env
 .env.local
@@ -5,7 +15,6 @@
 
 # 의존성 폴더 (용량이 너무 큼)
 node_modules/
-__pycache__/
 venv/
 
 # 빌드 결과물
@@ -15,4 +24,12 @@ build/
 
 # IDE 설정
 .vscode/
-.streamlit/
+
+# 모델 가중치 파일 제외
+*.safetensors
+*.bin
+checkpoints_s1/
+checkpoints_s2/
+
+# 캐시 및 환경 설정 제외
+.png

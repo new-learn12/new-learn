@@ -6,6 +6,7 @@ import streamlit.components.v1 as components
 
 from modules.french.french_logic import get_french_bot_result
 from modules.psychology.llm_handler import get_psychology_bot_result
+from modules.semiconductor.logic import get_semiconductor_bot_result
 
 # 1. 페이지 설정
 st.set_page_config(
@@ -297,7 +298,8 @@ def call_llm(subject, history):
         return get_french_bot_result(prompt)
     elif subject == "심리학":
         return get_psychology_bot_result(prompt, history)
-        
+    elif subject == "반도체":
+        return get_semiconductor_bot_result(history)
     return f"현재 {subject} 학습봇은 준비 중입니다.", None
 
 def render_landing():
