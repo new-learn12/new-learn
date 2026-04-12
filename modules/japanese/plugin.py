@@ -8,7 +8,7 @@ from modules.japanese import AsymmetricTranslator, JapaneseTextProcessor, TaskTy
 # render_translation_result, render_translation_mode 함수들을 그대로 이 곳에 둡니다.
 # (단, init_state 로직은 메인 A 파일로 넘깁니다)
 GITHUB_MODELS_ENDPOINT = "https://models.inference.ai.azure.com"
-GITHUB_MODELS_MODEL = "llama-3.3-70b-versatile"
+GITHUB_MODELS_MODEL = "meta/Llama-3.3-70B-Instruct"
 
 
 def get_japanese_bot_result(history):
