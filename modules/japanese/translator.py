@@ -24,9 +24,9 @@ except ImportError:
     st = MockSt()
 
 try:
-    from groq import Groq
+    from openai import OpenAI
 except ImportError:
-    raise ImportError("groq 라이브러리가 필요합니다. (pip install groq)")
+    raise ImportError("openai 라이브러리가 필요합니다. (pip install openai)")
 
 try:
     from transformers import pipeline
@@ -49,6 +49,10 @@ class TranslationStyle(str, Enum):
     BUSINESS = "business"    # 비즈니스
     FEMININE = "feminine"    # 여성스러운
     MASCULINE = "masculine"  # 남성스러운
+
+
+GITHUB_MODELS_ENDPOINT = "https://models.inference.ai.azure.com"
+GITHUB_MODELS_MODEL = "gpt-4.1-mini"
 
 
 @dataclass
@@ -113,12 +117,15 @@ def load_en_ko_pipeline():
 class AsymmetricTranslator:
     """비대칭 번역 파이프라인 - Task A/B에 따라 다른 로직 적용"""
 
-    def __init__(self, groq_api_key: str):
+    def __init__(self, llm_api_key: str):
         """
         Args:
-            groq_api_key: Gemini API 키
+            llm_api_key: GitHub Models API 키 (OPENAI_API_KEY2 또는 OPENAI_API_KEY)
         """
-        self.client = Groq(api_key=groq_api_key)
+        self.client = OpenAI(
+            base_url=GITHUB_MODELS_ENDPOINT,
+            api_key=llm_api_key,
+        )
 
         # 지연 로딩(Lazy Loading)을 위한 파이프라인 변수 초기화
         self._ja_en_pipeline = None
@@ -159,7 +166,7 @@ class AsymmetricTranslator:
             )
 
             response = self.client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
+                model=GITHUB_MODELS_MODEL,
                 messages=[{"role": "user", "content": prompt}],
                 response_format={"type": "json_object"}  # JSON Mode 그대로 지원
             )
@@ -271,7 +278,7 @@ class AsymmetricTranslator:
             )
 
             response = self.client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
+                model=GITHUB_MODELS_MODEL,
                 messages=[{"role": "user", "content": prompt}],
                 response_format={"type": "json_object"}  # JSON Mode 그대로 지원
             )
@@ -394,7 +401,7 @@ class AsymmetricTranslator:
 
             # google-genai 1.72.0: JSON 응답 강제
             response = self.client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
+                model=GITHUB_MODELS_MODEL,
                 messages=[{"role": "user", "content": prompt}],
                 response_format={"type": "json_object"}  # JSON Mode 그대로 지원
             )
@@ -557,16 +564,16 @@ if __name__ == "__main__":
 
     if os.path.exists(".env"):
         load_dotenv()
-    api_key = os.getenv("GROQ_API_KEY")
+    api_key = os.getenv("OPENAI_API_KEY2", "").strip() or os.getenv("OPENAI_API_KEY", "").strip()
     if not api_key:
-        print("⚠️  GROQ_API_KEY 환경변수가 설정되지 않았습니다.")
+        print("⚠️  OPENAI_API_KEY2 환경변수가 설정되지 않았습니다.")
         print("실제 API 테스트를 위해서는 다음 명령어로 설정하세요:")
-        print("$env:GROQ_API_KEY = 'your_api_key_here'")
+        print("$env:OPENAI_API_KEY2 = 'your_api_key_here'")
         print("\n구조 검증만 진행합니다...")
 
         # 구조 검증
         try:
-            translator = AsymmetricTranslator(groq_api_key="dummy_key")
+            translator = AsymmetricTranslator(llm_api_key="dummy_key")
             print("✅ 모듈 import 및 클래스 초기화 성공")
 
             # Task 타입 검증
@@ -597,7 +604,7 @@ if __name__ == "__main__":
 
         exit(0)
 
-    translator = AsymmetricTranslator(groq_api_key=api_key)
+    translator = AsymmetricTranslator(llm_api_key=api_key)
 
     # Task A 테스트 (일본어 → 한국어)
     print("\n[Task A: 일본어 → 한국어]")

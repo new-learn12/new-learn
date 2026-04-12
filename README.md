@@ -84,8 +84,7 @@ new-learn/
    2. 발급받은 키 입력
     ```text
     # .env
-    GROQ_API_KEY={[https://console.groq.com/keys] 에서 발급받은 API 키}
-    OPENAI_API_KEY={OpenAI에서 발급받은 API 키}
+    OPENAI_API_KEY={OpenAI에서 발급받은 API 키(선택적 fallback)}
     OPENAI_API_KEY2={GitHub Models용 GITHUB_TOKEN(ghp_...)}
     ```
 4. 애플리케이션 실행

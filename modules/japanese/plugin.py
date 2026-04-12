@@ -34,7 +34,7 @@ def _format_japanese_chat_response(answer: str) -> str:
 
     if isinstance(parsed, dict):
         if all(k in parsed for k in CHAT_KEYS):
-            return "\n".join(f"**{k}:** {parsed[k]}" for k in CHAT_KEYS)
+            return "<br>".join(f"**{k}:** {parsed[k]}" for k in CHAT_KEYS)
 
         if isinstance(parsed.get(BASIC_CONVERSATION_KEY), dict):
             lines = [f"**{BASIC_CONVERSATION_KEY}**"]
@@ -255,7 +255,7 @@ def get_translator():
     if os.path.exists(".env"):
         load_dotenv()
 
-    api_key = os.getenv("GROQ_API_KEY")
+    api_key = os.getenv("OPENAI_API_KEY2", "").strip() or os.getenv("OPENAI_API_KEY", "").strip()
     if not api_key:
         return None
 
@@ -284,7 +284,7 @@ def run_translation(input_text: str, task_value: str) -> dict:
             "task": task_value,
             "original_text": input_text,
             "grammar_check": {"is_correct": False, "correction": None},
-            "translated_text": "[GROQ_API_KEY가 설정되지 않았습니다.]",
+            "translated_text": "[OPENAI_API_KEY2가 설정되지 않았습니다.]",
             "style_variations": {},
             "key_tokens": [],
             "pronunciation": "",
