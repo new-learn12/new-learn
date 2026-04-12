@@ -5,6 +5,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 from modules.french.french_logic import get_french_bot_result
+from modules.history.history_logic import get_history_bot_result
 from modules.japanese.plugin import render_japanese_ui, get_japanese_bot_result
 from modules.psychology.llm_handler import get_psychology_bot_result
 from modules.semiconductor.logic import get_semiconductor_bot_result
@@ -317,6 +318,8 @@ def call_llm(subject, history):
 
     if subject == "프랑스어":
         return get_french_bot_result(prompt)
+    elif subject == "한국사":
+        return get_history_bot_result(prompt)
     elif subject == "심리학":
         return get_psychology_bot_result(prompt, history)
     elif subject == "반도체":
