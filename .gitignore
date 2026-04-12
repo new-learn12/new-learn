@@ -32,4 +32,5 @@ checkpoints_s1/
 checkpoints_s2/
 
 # 캐시 및 환경 설정 제외
-.png
+*.png
+*.zip
