@@ -1,8 +1,6 @@
-﻿"""NewLearn Streamlit 앱: 초기 챗봇 UI + 동일 톤 랜딩 페이지."""
-
-from datetime import datetime
-
+﻿from datetime import datetime
 import streamlit as st
+from modules.psychology.llm_handler import call_llm  # ← 추가된 줄
 
 st.set_page_config(
     page_title="NewLearn",
@@ -256,23 +254,6 @@ def render_messages(history):
                 f'<div class="msg-row user"><div class="avatar avatar-user">나</div><div><div class="bubble bubble-user">{c}</div><div class="msg-time" style="text-align:right">{t}</div></div></div>'
             )
     return "\n".join(rows)
-
-
-def call_llm(subject, history):
-    """
-    OpenAI 연동 예시:
-        from openai import OpenAI
-        client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-        msgs = [{"role": "system", "content": f"{subject} 전문 튜터입니다."}]
-        for h in history:
-            role = "assistant" if h["role"] == "bot" else "user"
-            msgs.append({"role": role, "content": h["content"]})
-        res = client.chat.completions.create(model="gpt-4o-mini", temperature=0.7, messages=msgs)
-        return res.choices[0].message.content
-    """
-    last = history[-1]["content"]
-    short = f'{last[:40]}{"..." if len(last) > 40 else ""}'
-    return f'"{short}"에 대한 답변입니다.<br>{subject} 맥락에 맞춰 LLM이 응답합니다.'
 
 
 def render_landing():
