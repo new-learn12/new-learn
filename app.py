@@ -460,7 +460,7 @@ def render_chat():
     if prompt := st.chat_input(f"{subject}에 대해 질문하세요..."):
         history.append({"role": "user", "content": prompt, "time": now()})
         with st.spinner("생각 중...💭"):
-            response, ans_image = call_llm(subject, history)
+            response, ans_image, *_ = call_llm(subject, history)
         history.append({"role": "bot", "content": response, "image": ans_image, "time": now()})
         st.rerun()
 
