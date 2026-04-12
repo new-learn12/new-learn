@@ -8,21 +8,21 @@ NewLearn app.py에서 다음과 같이 임포트해서 사용합니다:
 call_llm() 함수 내 역사(歷史) 과목 분기에 연결하면 됩니다.
 """
 
+from transformers.utils import logging as hf_logging
+from transformers import pipeline
+import torch
+import re
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
-import re
-import torch
-from transformers import pipeline
-from transformers.utils import logging as hf_logging
 
 hf_logging.disable_progress_bar()
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
 # ─── 설정 ───────────────────────────────────────────────────────────────────
-MODEL_ID   = "Qwen/Qwen2.5-3B-Instruct"          # 메모리에 맞게 변경 가능
-DATA_FILE  = "korean_modern_history_chatbot_ready.txt"  # 학습 데이터 파일 경로
-TOP_K      = 3                                      # 검색할 상위 섹션 수
+MODEL_ID = "Qwen/Qwen2.5-3B-Instruct"          # 메모리에 맞게 변경 가능
+DATA_FILE = "korean_modern_history_chatbot_ready.txt"  # 학습 데이터 파일 경로
+TOP_K = 3                                      # 검색할 상위 섹션 수
 MAX_TOKENS = 512                                    # 최대 생성 토큰
 # ────────────────────────────────────────────────────────────────────────────
 
@@ -42,7 +42,7 @@ SYSTEM_PROMPT = """당신은 한국 근대사 전문 교육 챗봇입니다.
 
 
 # ─── 모델 & 데이터 지연 로드 (처음 호출 시 한 번만 초기화) ─────────────────
-_pipe     = None
+_pipe = None
 _sections = None
 
 
@@ -61,8 +61,8 @@ def _load_resources():
 
     if _pipe is None:
         device = 0 if torch.cuda.is_available() else -1
-        dtype  = torch.float16 if device == 0 else torch.float32
-        _pipe  = pipeline(
+        dtype = torch.float16 if device == 0 else torch.float32
+        _pipe = pipeline(
             task="text-generation",
             model=MODEL_ID,
             device=device,
@@ -90,10 +90,12 @@ def _load_history_data(file_path: str) -> list:
         title = title_match.group(1).strip() if title_match else "(제목 없음)"
 
         kw_match = re.search(r"주요 키워드[:\s]+(.+)", section)
-        keywords = [k.strip() for k in kw_match.group(1).split(",")] if kw_match else []
+        keywords = [k.strip()
+                    for k in kw_match.group(1).split(",")] if kw_match else []
 
         q_match = re.search(r"예상 질문[:\s]+(.+)", section)
-        questions = [q.strip() for q in q_match.group(1).split("/")] if q_match else []
+        questions = [q.strip()
+                     for q in q_match.group(1).split("/")] if q_match else []
 
         parsed.append({
             "title": title,
@@ -111,8 +113,16 @@ def _retrieve_context(user_query: str, sections: list, top_k: int = 2) -> str:
     scores = []
     for sec in sections:
         title_tokens = set(re.findall(r"[가-힣a-zA-Z0-9]{2,}", sec["title"]))
-        kw_tokens    = set(re.findall(r"[가-힣a-zA-Z0-9]{2,}", " ".join(sec["keywords"])))
-        q_tokens     = set(re.findall(r"[가-힣a-zA-Z0-9]{2,}", " ".join(sec["questions"])))
+        kw_tokens = set(
+            re.findall(
+                r"[가-힣a-zA-Z0-9]{2,}",
+                " ".join(
+                    sec["keywords"])))
+        q_tokens = set(
+            re.findall(
+                r"[가-힣a-zA-Z0-9]{2,}",
+                " ".join(
+                    sec["questions"])))
 
         score = (
             len(query_tokens & title_tokens) * 3
@@ -132,7 +142,8 @@ def _retrieve_context(user_query: str, sections: list, top_k: int = 2) -> str:
         core_match = re.search(
             r"핵심 포인트:[\s\S]+?(?=주요 키워드|예상 질문|$)", sec["content"]
         )
-        core_text = core_match.group(0).strip() if core_match else sec["content"][:300]
+        core_text = core_match.group(0).strip(
+        ) if core_match else sec["content"][:300]
         parts.append(f"[{sec['title']}]\n{core_text}")
 
     return "\n\n".join(parts)
@@ -140,7 +151,9 @@ def _retrieve_context(user_query: str, sections: list, top_k: int = 2) -> str:
 
 # ─── 공개 API ────────────────────────────────────────────────────────────────
 
-def get_history_bot_result(user_query: str, chat_history: list = None) -> tuple:
+def get_history_bot_result(
+        user_query: str,
+        chat_history: list = None) -> tuple:
     """
     한국 근대사 질문에 대한 QWEN 모델의 답변을 반환합니다.
 
@@ -165,7 +178,7 @@ def get_history_bot_result(user_query: str, chat_history: list = None) -> tuple:
 
     # 최근 대화 이력 (최대 8턴)
     for turn in chat_history[-8:]:
-        role    = "assistant" if turn.get("role") == "bot" else "user"
+        role = "assistant" if turn.get("role") == "bot" else "user"
         content = re.sub(r"<[^>]+>", "", turn.get("content", ""))  # HTML 태그 제거
         messages.append({"role": role, "content": content})
 
