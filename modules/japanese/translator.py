@@ -309,7 +309,7 @@ class AsymmetricTranslator:
             or ""
         ).strip()
         if not translated_text:
-            raise ValueError("translated_text 누락")
+            raise ValueError("Missing required field: translated_text")
 
         style_variations = raw.get("style_variations")
         if not isinstance(style_variations, dict):
