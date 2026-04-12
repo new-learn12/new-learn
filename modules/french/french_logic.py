@@ -65,8 +65,8 @@ def search_hybrid(query):
 
 
 def get_french_bot_result(user_query):
-    # 클라우드 서버(DigitalOcean)에서 프랑스어 모듈 전용 키(OPENAI_API_KEY2)를 읽습니다.
-    MY_OPENAI_KEY = os.environ.get("OPENAI_API_KEY2", "").strip()
+    # 클라우드 서버(DigitalOcean) 환경 변수에서 OpenAI 키를 읽습니다.
+    MY_OPENAI_KEY = os.environ.get("OPENAI_API_KEY", "").strip()
 
     # 만약 서버에 키가 세팅 안 되어 있으면 에러 방지용 안내문 출력
     if not MY_OPENAI_KEY:
