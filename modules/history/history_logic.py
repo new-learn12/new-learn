@@ -140,7 +140,7 @@ def _retrieve_context(user_query: str, sections: list, top_k: int = 2) -> str:
 
 # ─── 공개 API ────────────────────────────────────────────────────────────────
 
-def get_history_bot_result(user_query: str, chat_history: list = None) -> str:
+def get_history_bot_result(user_query: str, chat_history: list = None) -> tuple:
     """
     한국 근대사 질문에 대한 QWEN 모델의 답변을 반환합니다.
 
@@ -191,6 +191,6 @@ def get_history_bot_result(user_query: str, chat_history: list = None) -> str:
         for msg in reversed(generated):
             if isinstance(msg, dict) and msg.get("role") == "assistant":
                 _remove_hanja(msg.get("content", "").strip())
-        return _remove_hanja(str(generated[-1]).strip())
+        return _remove_hanja(str(generated[-1]).strip()), None
 
-    return _remove_hanja(str(generated).strip())
+    return _remove_hanja(str(generated).strip()), None
