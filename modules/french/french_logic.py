@@ -120,7 +120,7 @@ def get_french_bot_result(user_query):
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            model="gpt-4.1-mini",
+            model="gpt-4o",
             temperature=0.5,
             top_p=0.8,
             max_tokens=1000,
