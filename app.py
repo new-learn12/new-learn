@@ -135,7 +135,6 @@ def render_chat():
         if st.button("← 메인으로", use_container_width=True):
             st.session_state.page = "landing"
             st.rerun()
-    
     subject = st.session_state.subject
     history = get_history(subject)
     st.markdown(f"### {subject} 학습 세션")
@@ -150,7 +149,6 @@ def render_chat():
 
             buttons.forEach(btn => {
                 btn.classList.add('bound'); 
-
                 btn.addEventListener('click', function() {
                     const text = this.getAttribute('data-text');
                     const lang = this.getAttribute('data-lang');

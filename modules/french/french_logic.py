@@ -58,7 +58,7 @@ def search_hybrid(query):
 # 3. LLM 연동 및 결과 반환 함수
 def get_french_bot_result(user_query):
     # 클라우드 서버(DigitalOcean)의 환경 변수에서 안전하게 키를 꺼내오는 방식
-    MY_OPENAI_KEY = os.environ.get("OPENAI_API_KEY", "")
+    MY_OPENAI_KEY = os.environ.get("OPENAI_API_KEY", "").strip()
     
     # 만약 서버에 키가 세팅 안 되어 있으면 에러 방지용 안내문 출력
     if not MY_OPENAI_KEY:
@@ -94,7 +94,6 @@ def get_french_bot_result(user_query):
         - 발음: {pronunciation}
         """
         prefix = f"프랑스어 문장: {french_text}\n"
-        
     else:
         ans_image = None
         user_prompt = f"""
@@ -116,11 +115,11 @@ def get_french_bot_result(user_query):
             top_p=0.8,
             max_tokens=1000,
         )
-        llm_explanation = response.choices[0].message.content.strip()
-        
+        llm_explanation = response.choices[0].message.content.strip() 
     except Exception as e:
         llm_explanation = f"LLM 답변 생성 중 오류가 발생했습니다: {e}"
         prefix = f"프랑스어 문장: {user_query}\n"
 
     final_text = f"{prefix}\n{llm_explanation}" if prefix else llm_explanation
     return final_text, ans_image
+
