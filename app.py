@@ -1,9 +1,15 @@
-﻿"""NewLearn Streamlit 앱: 초기 챗봇 UI + 동일 톤 랜딩 페이지."""
-
+import re
 from datetime import datetime
 
 import streamlit as st
+import streamlit.components.v1 as components
 
+from modules.french.french_logic import get_french_bot_result
+from modules.japanese.plugin import render_japanese_ui, get_japanese_bot_result
+from modules.psychology.llm_handler import get_psychology_bot_result
+from modules.semiconductor.logic import get_semiconductor_bot_result
+
+# 1. 페이지 설정
 st.set_page_config(
     page_title="NewLearn",
     page_icon="📖",
@@ -11,12 +17,13 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# 2. 과목 데이터 정의
 SUBJECTS = [
     {
-        "name": "역사",
+        "name": "한국사",
         "icon": "🏺",
         "desc": "시대별 사건, 사료 해석, 비교사 관점까지 핵심만 빠르게 정리합니다.",
-        "welcome": "안녕하세요! <b>역사</b> 학습봇입니다.<br>시대 흐름 정리, 사건 비교, 사료 해석까지 함께 공부해요.",
+        "welcome": "안녕하세요! <b>한국사</b> 학습봇입니다.<br>시대 흐름 정리, 사건 비교, 사료 해석까지 함께 공부해요.",
     },
     {
         "name": "일본어",
@@ -47,6 +54,8 @@ SUBJECTS = [
 SUBJECT_INFO = {subject["name"]: subject for subject in SUBJECTS}
 SUBJECT_NAMES = list(SUBJECT_INFO.keys())
 
+# --- 헬퍼 함수 정의 ---
+
 
 def now():
     d = datetime.now()
@@ -59,7 +68,8 @@ def get_history(subject):
             {
                 "role": "bot",
                 "content": SUBJECT_INFO[subject]["welcome"],
-                "time": "",
+                "time": now(),
+                "image": None
             }
         ]
     return st.session_state.histories[subject]
@@ -94,6 +104,20 @@ def init_state():
         except Exception:
             pass
 
+    # --- 일본어 모듈 전용 세션 상태 ---
+    if "jp_translation_mode" not in st.session_state:
+        st.session_state.jp_translation_mode = False
+    if "translation_task" not in st.session_state:
+        st.session_state.translation_task = "KOREAN_TO_JAPANESE"  # TaskType 값 매핑
+    if "translation_result" not in st.session_state:
+        st.session_state.translation_result = {}
+    if "translator_error" not in st.session_state:
+        st.session_state.translator_error = None
+
+    # 다른 과목으로 이동 시 번역 모드 초기화
+    if st.session_state.subject != "일본어":
+        st.session_state.jp_translation_mode = False
+
 
 def inject_styles(current_page):
     sidebar_visibility = "display:none!important;" if current_page == "landing" else ""
@@ -124,7 +148,7 @@ button[kind="header"]{{display:none!important}}
     font-family:'Noto Sans KR',sans-serif;
 }}
 .main .block-container{{padding:1.5rem 2rem!important;max-width:100%!important}}
-
+.tts-btn {{ cursor: pointer; border: 1px solid #dce6f2; background: #f8fbff; color: #185fa5; border-radius: 20px; padding: 6px 12px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; }}
 [data-testid="stSidebar"]{{{sidebar_visibility}background:#f8f9fa!important;border-right:1px solid #e9ecef;min-width:220px!important;max-width:220px!important}}
 [data-testid="stSidebar"]>div:first-child{{padding:0!important}}
 [data-testid="stSidebar"] .stButton>button{{display:flex!important;align-items:center!important;gap:10px!important;padding:8px 10px!important;border-radius:8px!important;font-size:13px!important;color:#495057!important;margin-bottom:2px!important;border:none!important;background:none!important;width:100%!important;text-align:left!important;box-shadow:none!important;font-family:'Noto Sans KR',sans-serif!important;font-weight:400!important;justify-content:flex-start!important}}
@@ -247,32 +271,59 @@ def render_messages(history):
     for msg in history:
         t = msg.get("time", "")
         c = msg["content"]
+        img = msg.get("image")
+
+        # 1. 프랑스어 챗봇 파일의 텍스트 전처리 로직 이식
+        c_display = c.strip()
+        c_display = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', c_display)
+        c_display = re.sub(r'\n+', '\n', c_display).replace('\n[', '\n\n[')
+        c_display = c_display.replace('프랑스어 문장:', '<b>프랑스어 문장:</b>')
+
         if msg["role"] == "bot":
+            # 2. 프랑스어 챗봇 파일의 TTS 및 이미지 처리 로직 이식
+            tts_html = ""
+            if "프랑스어 문장:" in c:
+                try:
+                    parts = c.split("프랑스어 문장:")
+                    fr_text = parts[1].split(
+                        '\n')[0].strip().replace('"', '&quot;')
+                    tts_html = f'<div style="margin-top:10px;"><button class="tts-btn" data-text="{fr_text}" data-lang="fr-FR">🇫🇷 발음 듣기</button></div>'
+                except Exception:
+                    pass
+
+            img_html = f'<img src="{img}" style="margin-top:8px; max-width:250px; border-radius:10px; display:block;">' if img else ""
+
+            # 3. 심리 챗봇 파일의 예쁜 HTML 디자인 껍데기로 감싸기
             rows.append(
-                f'<div class="msg-row"><div class="avatar avatar-bot">봇</div><div><div class="bubble bubble-bot">{c}</div><div class="msg-time">{t}</div></div></div>'
+                f'<div class="msg-row">'
+                f'<div class="avatar avatar-bot">봇</div>'
+                f'<div><div class="bubble bubble-bot">{c_display}{tts_html}{img_html}</div>'
+                f'<div class="msg-time">{t}</div></div></div>'
             )
         else:
+            # 유저 메시지 처리 (심리 챗봇 파일 디자인 유지)
             rows.append(
-                f'<div class="msg-row user"><div class="avatar avatar-user">나</div><div><div class="bubble bubble-user">{c}</div><div class="msg-time" style="text-align:right">{t}</div></div></div>'
+                f'<div class="msg-row user">'
+                f'<div class="avatar avatar-user">나</div>'
+                f'<div><div class="bubble bubble-user">{c_display}</div>'
+                f'<div class="msg-time" style="text-align:right">{t}</div></div></div>'
             )
     return "\n".join(rows)
 
 
+# --- 메인 로직 ---
 def call_llm(subject, history):
-    """
-    OpenAI 연동 예시:
-        from openai import OpenAI
-        client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-        msgs = [{"role": "system", "content": f"{subject} 전문 튜터입니다."}]
-        for h in history:
-            role = "assistant" if h["role"] == "bot" else "user"
-            msgs.append({"role": role, "content": h["content"]})
-        res = client.chat.completions.create(model="gpt-4o-mini", temperature=0.7, messages=msgs)
-        return res.choices[0].message.content
-    """
-    last = history[-1]["content"]
-    short = f'{last[:40]}{"..." if len(last) > 40 else ""}'
-    return f'"{short}"에 대한 답변입니다.<br>{subject} 맥락에 맞춰 LLM이 응답합니다.'
+    prompt = history[-1]["content"]
+
+    if subject == "프랑스어":
+        return get_french_bot_result(prompt)
+    elif subject == "심리학":
+        return get_psychology_bot_result(prompt, history)
+    elif subject == "반도체":
+        return get_semiconductor_bot_result(history)
+    elif subject == "일본어":
+        return get_japanese_bot_result(history), None
+    return f"현재 {subject} 학습봇은 준비 중입니다.", None
 
 
 def render_landing():
@@ -295,16 +346,20 @@ def render_landing():
 
     cta_col1, cta_col2 = st.columns([1, 1])
     with cta_col1:
-        if st.button("챗봇 시작하기", key="landing_chat_start", type="primary", use_container_width=True):
+        if st.button("챗봇 시작하기", key="landing_chat_start",
+                     type="primary", use_container_width=True):
             st.session_state.page = "chat"
             st.session_state.histories.pop(st.session_state.subject, None)
             sync_query_params()
             st.rerun()
     with cta_col2:
-        if st.button("자세히 보기", key="landing_detail", use_container_width=True, type="secondary"):
+        if st.button("자세히 보기", key="landing_detail",
+                     use_container_width=True, type="secondary"):
             st.info("아래 과목을 선택하면 해당 과목 챗봇으로 바로 시작됩니다.")
 
-    st.markdown('<p class="hero-btn-note">원하는 전공 카드를 선택하면 해당 챗봇으로 즉시 이동합니다.</p>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="hero-btn-note">원하는 전공 카드를 선택하면 해당 챗봇으로 즉시 이동합니다.</p>',
+        unsafe_allow_html=True)
 
     st.markdown(
         """
@@ -329,7 +384,8 @@ def render_landing():
 """,
                 unsafe_allow_html=True,
             )
-            if st.button(f"{subject['name']} 시작", key=f"start_{subject['name']}", use_container_width=True):
+            if st.button(
+                    f"{subject['name']} 시작", key=f"start_{subject['name']}", use_container_width=True):
                 st.session_state.subject = subject["name"]
                 st.session_state.page = "chat"
                 st.session_state.histories.pop(subject["name"], None)
@@ -359,7 +415,7 @@ def render_chat():
             unsafe_allow_html=True,
         )
 
-        if st.button("← 랜딩 페이지", key="btn_go_landing", use_container_width=True):
+        if st.button("← 메인으로", key="btn_go_landing", use_container_width=True):
             st.session_state.page = "landing"
             sync_query_params()
             st.rerun()
@@ -382,28 +438,73 @@ def render_chat():
     subject = st.session_state.subject
     history = get_history(subject)
 
-    st.markdown(
-        f"""
-<div class="app-wrapper">
-  <div class="chat-area">
-    <div class="chat-header">
-      <span class="badge-subject">{subject}</span>
+    # 1. 커스텀 UI 렌더링 분기 (UI 탈취 플래그)
+    skip_main_input = False
+
+    if subject == "일본어":
+        # 일본어 모듈은 내부에서 탭을 그리고, 번역 모드일 경우 자체 input을 쓰므로 skip_main_input 플래그를 받아옴
+        skip_main_input = render_japanese_ui(history, render_messages, now)
+    else:
+        # 심리 챗봇 파일의 예쁜 채팅창 렌더링
+        st.markdown(
+            f"""
+    <div class="app-wrapper">
+      <div class="chat-area">
+        <div class="chat-header">
+          <span class="badge-subject">{subject}</span>
+        </div>
+        <div class="chat-messages">{render_messages(history)}</div>
+      </div>
     </div>
-    <div class="chat-messages">{render_messages(history)}</div>
-  </div>
-</div>
-    """,
-        unsafe_allow_html=True,
-    )
+        """,
+            unsafe_allow_html=True,
+        )
 
-    if prompt := st.chat_input(f"{subject}에 대해 질문하세요..."):
-        history.append({"role": "user", "content": prompt, "time": now()})
-        with st.spinner("답변 생성 중..."):
-            response = call_llm(subject, history)
-        history.append({"role": "bot", "content": response, "time": now()})
-        st.rerun()
+    # === 프랑스어 챗봇 파일에서 가져온 필수 Javascript 삽입 부분 ===
+    components.html("""
+    <script>
+    function attachEvents() {
+        try {
+            const parentDoc = window.parent.document;
+            const buttons = parentDoc.querySelectorAll('.tts-btn:not(.bound)');
+
+            buttons.forEach(btn => {
+                btn.classList.add('bound');
+                btn.addEventListener('click', function() {
+                    const text = this.getAttribute('data-text');
+                    const lang = this.getAttribute('data-lang');
+
+                    if(text) {
+                        window.parent.speechSynthesis.cancel();
+                        const utterance = new window.parent.SpeechSynthesisUtterance(text);
+                        utterance.lang = lang;
+                        utterance.rate = 0.9;
+                        utterance.volume = 1.0;
+                        window.parent.speechSynthesis.speak(utterance);
+                    }
+                });
+            });
+        } catch (e) {}
+    }
+
+    attachEvents();
+    setInterval(attachEvents, 500); // 렌더링 갱신 시 이벤트 재바인딩
+    </script>
+    """, width=0, height=0)
+
+    # 채팅 입력 부분 유지
+    # 2. 메인 채팅 입력창 (skip_main_input이 False일 때만 렌더링하여 충돌 방지)
+    if not skip_main_input:
+        if prompt := st.chat_input(f"{subject}에 대해 질문하세요..."):
+            history.append({"role": "user", "content": prompt, "time": now()})
+            with st.spinner("생각 중...💭"):
+                response, ans_image = call_llm(subject, history)
+            history.append({"role": "bot", "content": response,
+                           "image": ans_image, "time": now()})
+            st.rerun()
 
 
+# --- 앱 실행 ---
 init_state()
 sync_query_params()
 inject_styles(st.session_state.page)
