@@ -2,7 +2,7 @@
 import streamlit.components.v1 as components
 from datetime import datetime
 import re
-from french_logic import get_french_bot_result
+from modules.french.french_logic import get_french_bot_result
 
 # 1. 페이지 설정 (가장 위에 단 한 번만 와야 합니다)
 st.set_page_config(

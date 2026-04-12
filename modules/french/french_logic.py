@@ -3,18 +3,31 @@ import torch
 from sentence_transformers import SentenceTransformer, util
 from openai import OpenAI
 import os
+from dotenv import load_dotenv
+
+# ✅ 프로젝트 루트에 있는 .env 파일을 읽어와서 시스템 환경 변수로 등록합니다.
+load_dotenv()
+
+# --- 경로 설정 로직 추가 ---
+# 현재 파일(french_logic.py)의 위치: project_root/modules/french/
+# 목표 파일(french.csv)의 위치: project_root/french.csv
+# 따라서 두 단계를 올라가야(../../) csv 파일을 찾을 수 있습니다.
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+CSV_PATH = os.path.normpath(os.path.join(BASE_DIR, "french.csv"))
 
 # 1. 모델 및 데이터 로드
-print("임베딩 모델 및 데이터 로딩 중...")
+print(f"임베딩 모델 및 데이터 로딩 중... (경로: {CSV_PATH})")
 embedder = SentenceTransformer('jhgan/ko-sroberta-multitask')
 
 def load_data(file_path):
     try:
+        # 절대 경로로 파일을 읽어와 경로 미아를 방지합니다.
         return pd.read_csv(file_path, encoding='utf-8')
     except Exception:
         return pd.read_csv(file_path, encoding='cp949')
 
-df = load_data('french.csv')
+# 데이터 로드 실행
+df = load_data(CSV_PATH)
 df['korean'] = df['korean'].fillna("")
 df['french'] = df['french'].fillna("")
 
@@ -71,6 +84,7 @@ def get_french_bot_result(user_query):
         french_text = matched['french']
         korean_text = matched['korean']
         pronunciation = matched['pronunciation']
+        # CSV에 image_url 컬럼이 있는지 확인 후 반환
         ans_image = matched['image_url'] if 'image_url' in matched and pd.notna(matched['image_url']) else None
         
         user_prompt = f"""
