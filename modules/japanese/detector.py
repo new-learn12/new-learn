@@ -18,9 +18,12 @@ except ImportError:
         "langdetect 라이브러리가 필요합니다. pip install langdetect 실행해주세요.")
 
 try:
-    from groq import Groq
+    from openai import OpenAI
 except ImportError:
-    raise ImportError("groq 라이브러리가 필요합니다. (pip install groq)")
+    raise ImportError("openai 라이브러리가 필요합니다. (pip install openai)")
+
+GITHUB_MODELS_ENDPOINT = "https://models.inference.ai.azure.com"
+GITHUB_MODELS_MODEL = "gpt-4.1-mini"
 
 
 class Language(str, Enum):
@@ -63,13 +66,16 @@ class HybridLanguageDetector:
     KATAKANA_PATTERN = re.compile(r"[\u30a0-\u30ff]")
     KANJI_PATTERN = re.compile(r"[\u4e00-\u9fff]")
 
-    def __init__(self, groq_api_key: str | None = None):
+    def __init__(self, llm_api_key: str | None = None):
         """
         Args:
-            groq_api_key: Groq API 키 (없으면 2단계까지만 동작)
+            llm_api_key: GitHub Models API 키 (없으면 2단계까지만 동작)
         """
-        if groq_api_key:
-            self.client = Groq(api_key=groq_api_key)
+        if llm_api_key:
+            self.client = OpenAI(
+                base_url=GITHUB_MODELS_ENDPOINT,
+                api_key=llm_api_key,
+            )
 
     def _step1_regex_detection(
             self, text: str) -> Tuple[Language | None, float]:
@@ -185,7 +191,7 @@ class HybridLanguageDetector:
             )
 
             response = self.client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
+                model=GITHUB_MODELS_MODEL,
                 messages=[{"role": "user", "content": prompt}],
                 response_format={"type": "json_object"}  # JSON Mode 그대로 지원
             )
@@ -331,9 +337,9 @@ if __name__ == "__main__":
         load_dotenv()
 
     # Gemini API 키 로드 (환경변수에서)
-    api_key = os.getenv("GROQ_API_KEY")
+    api_key = os.getenv("OPENAI_API_KEY2", "").strip() or os.getenv("OPENAI_API_KEY", "").strip()
 
-    detector = HybridLanguageDetector(groq_api_key=api_key)
+    detector = HybridLanguageDetector(llm_api_key=api_key)
 
     # 테스트 케이스
     test_texts = [
