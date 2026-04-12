@@ -298,6 +298,8 @@ class AsymmetricTranslator:
             end = text.rfind("}")
             if start != -1 and end != -1 and end > start:
                 text = text[start:end + 1]
+            else:
+                raise ValueError("No valid JSON object found in model response")
         return text
 
     @staticmethod

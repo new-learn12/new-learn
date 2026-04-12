@@ -34,11 +34,9 @@ def _format_japanese_chat_response(answer: str) -> str:
 
     if isinstance(parsed, dict):
         if all(k in parsed for k in CHAT_KEYS):
-            return "\n".join([
-                f"**{CHAT_KEYS[0]}:** {parsed.get(CHAT_KEYS[0], '')}",
-                f"**{CHAT_KEYS[1]}:** {parsed.get(CHAT_KEYS[1], '')}",
-                f"**{CHAT_KEYS[2]}:** {parsed.get(CHAT_KEYS[2], '')}",
-            ])
+            return "\n".join(
+                [f"**{k}:** {parsed.get(k, '')}" for k in CHAT_KEYS]
+            )
 
         if isinstance(parsed.get(BASIC_CONVERSATION_KEY), dict):
             lines = [f"**{BASIC_CONVERSATION_KEY}**"]
