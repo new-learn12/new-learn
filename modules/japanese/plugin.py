@@ -1,24 +1,26 @@
 import os
 import streamlit as st
+from openai import OpenAI
 from dotenv import load_dotenv
 from modules.japanese import AsymmetricTranslator, JapaneseTextProcessor, TaskType, OutputFormat
 
 # 기존 B 파일의 get_translator, get_text_processor, run_translation,
 # render_translation_result, render_translation_mode 함수들을 그대로 이 곳에 둡니다.
 # (단, init_state 로직은 메인 A 파일로 넘깁니다)
+GITHUB_MODELS_ENDPOINT = "https://models.inference.ai.azure.com"
+GITHUB_MODELS_MODEL = "gpt-4.1-mini"
 
 
 def get_japanese_bot_result(history):
-    """일본어 전용 Groq API 호출 로직 (B 파일의 call_llm 내부 로직)"""
+    """일본어 회화 모드용 LLM 호출 로직"""
     if os.path.exists(".env"):
         load_dotenv()
-    api_key = os.getenv("GROQ_API_KEY")
+    api_key = os.getenv("OPENAI_API_KEY2", "").strip()
     if not api_key:
-        return "[오류] GROQ_API_KEY가 설정되지 않았습니다."
+        return "[오류] OPENAI_API_KEY2가 설정되지 않았습니다."
 
     try:
-        from groq import Groq
-        client = Groq(api_key=api_key)
+        client = OpenAI(base_url=GITHUB_MODELS_ENDPOINT, api_key=api_key)
 
         context = []
         for msg in history[1:]:
@@ -42,9 +44,8 @@ def get_japanese_bot_result(history):
 간결하고 명확한 답변을 300자 이내로 작성하세요."""
 
         response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model=GITHUB_MODELS_MODEL,
             messages=[{"role": "user", "content": prompt}],
-            response_format={"type": "json_object"}
         )
         answer = response.choices[0].message.content
         return answer if answer else "[응답 생성 실패]"
