@@ -282,6 +282,71 @@ class AsymmetricTranslator:
             print(f"[Warning] Gemini 번역 실패: {e}")
             return "[번역 실패]"
 
+    @staticmethod
+    def _clean_json_text(response_text: str) -> str:
+        text = (response_text or "").strip()
+        if text.startswith("```json"):
+            text = text[7:]
+        elif text.startswith("```"):
+            text = text[3:]
+        if text.endswith("```"):
+            text = text[:-3]
+        text = text.strip()
+
+        if not text.startswith("{"):
+            start = text.find("{")
+            end = text.rfind("}")
+            if start != -1 and end != -1 and end > start:
+                text = text[start:end + 1]
+            else:
+                raise ValueError("No valid JSON object found in model response")
+        return text
+
+    @staticmethod
+    def _normalize_comprehensive_result(raw: Dict[str, Any]) -> Dict[str, Any]:
+        translated_text = str(
+            raw.get("translated_text")
+            or raw.get("translation")
+            or raw.get("text")
+            or ""
+        ).strip()
+        if not translated_text:
+            raise ValueError("Missing required field: translated_text")
+
+        style_variations = raw.get("style_variations")
+        if not isinstance(style_variations, dict):
+            style_variations = raw.get("styles") if isinstance(raw.get("styles"), dict) else {}
+        required_styles = ["casual", "polite", "business", "feminine", "masculine"]
+        normalized_styles = {}
+        for style in required_styles:
+            value = style_variations.get(style)
+            normalized_styles[style] = str(value).strip() if value is not None else ""
+
+        key_tokens = raw.get("key_tokens")
+        if isinstance(key_tokens, list):
+            normalized_tokens = []
+            for token in key_tokens:
+                stripped = str(token).strip()
+                if stripped:
+                    normalized_tokens.append(stripped)
+        elif isinstance(key_tokens, str):
+            normalized_tokens = [t.strip() for t in key_tokens.split(",") if t.strip()]
+        else:
+            normalized_tokens = []
+
+        pronunciation = raw.get("pronunciation")
+        if pronunciation is None:
+            pronunciation = raw.get("romanization", "")
+
+        return {
+            "is_correct": bool(raw.get("is_correct", True)),
+            "correction": raw.get("correction"),
+            "translated_text": translated_text,
+            "style_variations": normalized_styles,
+            "key_tokens": normalized_tokens,
+            "pronunciation": str(pronunciation).strip(),
+        }
+
     def _comprehensive_translate_with_gemini(
             self, text: str) -> ComprehensiveResult:
         """
@@ -336,33 +401,16 @@ class AsymmetricTranslator:
             content = response.choices[0].message.content
             response_text = content.strip() if content else ""
 
-            # JSON 추출 시도 (마크다운 코드블록 제거)
-            if response_text.startswith("```json"):
-                response_text = response_text[7:]
-            if response_text.endswith("```"):
-                response_text = response_text[:-3]
-            response_text = response_text.strip()
-
-            result = json.loads(response_text)
-
-            # 필수 필드 검증
-            required_fields = [
-                "is_correct",
-                "translated_text",
-                "style_variations",
-                "key_tokens",
-                "pronunciation"]
-            for field in required_fields:
-                if field not in result:
-                    raise ValueError(f"필수 필드 누락: {field}")
+            result = json.loads(self._clean_json_text(response_text))
+            normalized = self._normalize_comprehensive_result(result)
 
             return ComprehensiveResult(
-                is_correct=result["is_correct"],
-                correction=result.get("correction"),
-                translated_text=result["translated_text"],
-                style_variations=result["style_variations"],
-                key_tokens=result["key_tokens"],
-                pronunciation=result["pronunciation"]
+                is_correct=normalized["is_correct"],
+                correction=normalized["correction"],
+                translated_text=normalized["translated_text"],
+                style_variations=normalized["style_variations"],
+                key_tokens=normalized["key_tokens"],
+                pronunciation=normalized["pronunciation"]
             )
 
         except json.JSONDecodeError as e:
