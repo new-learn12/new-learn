@@ -109,7 +109,7 @@ def init_state():
     if "jp_translation_mode" not in st.session_state:
         st.session_state.jp_translation_mode = False
     if "translation_task" not in st.session_state:
-        st.session_state.translation_task = "KOREAN_TO_JAPANESE"  # TaskType 값 매핑
+        st.session_state.translation_task = "ko_to_ja"
     if "translation_result" not in st.session_state:
         st.session_state.translation_result = {}
     if "translator_error" not in st.session_state:

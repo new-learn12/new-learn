@@ -1,4 +1,5 @@
 import os
+import json
 import streamlit as st
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -9,6 +10,46 @@ from modules.japanese import AsymmetricTranslator, JapaneseTextProcessor, TaskTy
 # (단, init_state 로직은 메인 A 파일로 넘깁니다)
 GITHUB_MODELS_ENDPOINT = "https://models.inference.ai.azure.com"
 GITHUB_MODELS_MODEL = "Llama-3.3-70B-Instruct"
+
+
+def _strip_code_fence(text: str) -> str:
+    cleaned = (text or "").strip()
+    if cleaned.startswith("```json"):
+        cleaned = cleaned[7:]
+    elif cleaned.startswith("```"):
+        cleaned = cleaned[3:]
+    if cleaned.endswith("```"):
+        cleaned = cleaned[:-3]
+    return cleaned.strip()
+
+
+def _format_japanese_chat_response(answer: str) -> str:
+    cleaned = _strip_code_fence(answer)
+    try:
+        parsed = json.loads(cleaned)
+    except Exception:
+        return cleaned
+
+    if isinstance(parsed, dict):
+        if {"문자", "발음", "의미"}.issubset(parsed.keys()):
+            return "\n".join([
+                f"**문자:** {parsed.get('문자', '')}",
+                f"**발음:** {parsed.get('발음', '')}",
+                f"**의미:** {parsed.get('의미', '')}",
+            ])
+
+        if isinstance(parsed.get("기본회화"), dict):
+            lines = ["**기본회화**"]
+            for k, v in parsed["기본회화"].items():
+                lines.append(f"- {k}: {v}")
+            return "\n".join(lines)
+
+        lines = []
+        for key, value in parsed.items():
+            lines.append(f"**{key}:** {value}")
+        return "\n".join(lines)
+
+    return cleaned
 
 
 def get_japanese_bot_result(history):
@@ -48,7 +89,7 @@ def get_japanese_bot_result(history):
             messages=[{"role": "user", "content": prompt}],
         )
         answer = response.choices[0].message.content
-        return answer if answer else "[응답 생성 실패]"
+        return _format_japanese_chat_response(answer) if answer else "[응답 생성 실패]"
     except Exception as e:
         return f"[API 오류] {str(e)}"
 
