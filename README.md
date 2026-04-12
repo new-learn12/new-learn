@@ -80,7 +80,12 @@ new-learn/
    pip install -r requirements.txt
    ```
 3. 환경 변수 설정
-   - `.env` 파일에 필요한 API Key 등을 세팅합니다. (상세 변수명 추후 업데이트 예정)
+   1. 프로젝트 루트 디렉토리에 `.env` 파일을 생성
+   2. 발급받은 키 입력
+   ```text
+   # .env
+   GROQ_API_KEY={[https://console.groq.com/keys] 에서 발급받은 API 키}
+   ```
 4. 애플리케이션 실행
    ```bash
    streamlit run app.py

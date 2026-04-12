@@ -1,6 +1,7 @@
 ﻿"""NewLearn Streamlit 앱: 초기 챗봇 UI + 동일 톤 랜딩 페이지."""
 
 import os
+from dotenv import load_dotenv
 from datetime import datetime
 
 import streamlit as st
@@ -276,7 +277,11 @@ def get_translator():
     if "translator" in st.session_state and st.session_state.translator is not None:
         return st.session_state.translator
 
-    api_key = os.getenv("GEMINI_API_KEY")
+
+    if os.path.exists(".env"):
+        load_dotenv()
+
+    api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
         return None
 
@@ -305,7 +310,7 @@ def run_translation(input_text: str, task_value: str) -> dict:
             "task": task_value,
             "original_text": input_text,
             "grammar_check": {"is_correct": False, "correction": None},
-            "translated_text": "[GEMINI_API_KEY가 설정되지 않았습니다.]",
+            "translated_text": "[GROQ_API_KEY가 설정되지 않았습니다.]",
             "style_variations": {},
             "key_tokens": [],
             "pronunciation": "",
@@ -316,6 +321,7 @@ def run_translation(input_text: str, task_value: str) -> dict:
         task_type = TaskType(task_value)
         return translator.translate(input_text, task_type)
     except Exception as e:
+        print(str(e))
         return {
             "task": task_value,
             "original_text": input_text,
@@ -444,20 +450,66 @@ def render_translation_mode(subject: str):
 
 
 def call_llm(subject, history):
-    """
-    OpenAI 연동 예시:
-        from openai import OpenAI
-        client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-        msgs = [{"role": "system", "content": f"{subject} 전문 튜터입니다."}]
-        for h in history:
-            role = "assistant" if h["role"] == "bot" else "user"
-            msgs.append({"role": role, "content": h["content"]})
-        res = client.chat.completions.create(model="gpt-4o-mini", temperature=0.7, messages=msgs)
-        return res.choices[0].message.content
-    """
-    last = history[-1]["content"]
-    short = f'{last[:40]}{"..." if len(last) > 40 else ""}'
-    return f'"{short}"에 대한 답변입니다.<br>{subject} 맥락에 맞춰 LLM이 응답합니다.'
+    """일본어만 Groq API 호출 (토큰 최적화 무료 버전)"""
+    
+    # 다른 과목은 모의 응답 유지
+    if subject != "일본어":
+        last = history[-1]["content"]
+        short = f'{last[:40]}{"..." if len(last) > 40 else ""}'
+        return f'"{short}"에 대한 답변입니다.<br>{subject} 맥락에 맞춰 LLM이 응답합니다.'
+    
+    if os.path.exists(".env"):
+        load_dotenv()
+
+    # 일본어 과목: Groq API 호출
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        return "[오류] GROQ_API_KEY가 설정되지 않았습니다."
+    
+    try:
+        from groq import Groq
+        client = Groq(
+            api_key=api_key,
+        )
+        
+        # 최적화 1: 최근 3개 메시지만 추출 (welcome 제외)
+        context = []
+        for msg in history[1:]:  # [1:]로 welcome 메시지 제외
+            if len(msg["content"]) > 10:  # 너무 짧은 메시지 필터링
+                context.append(msg)
+            if len(context) >= 3:  # 최대 3개만 수집
+                break
+        
+        # 역순으로 수집되었으므로 마지막 3개만 정렬
+        context = context[-3:] if context else []
+        
+        # 최적화 2: 컨텍스트 문자열 구성
+        context_text = "\n".join([f"[{msg['role']}]: {msg['content']}" for msg in context])
+        
+        # 최적화 3: 극소화된 시스템 프롬프트 + 컨텍스트
+        prompt = f"""당신은 일본어 학습 튜터입니다. 문법/발음/회화를 간결히 설명하세요.
+반드시 **json** 형식으로만 응답해야 합니다.
+
+[이전 대화]
+{context_text}
+
+[현재 질문]
+{history[-1]['content']}
+
+간결하고 명확한 답변을 300자 이내로 작성하세요."""
+        
+        # 최적화 4: Groq API 호출
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"}  # JSON Mode 그대로 지원
+        )
+        
+        answer = response.choices[0].message.content
+        return answer if answer else "[응답 생성 실패]"
+    
+    except Exception as e:
+        return f"[API 오류] {str(e)}"
 
 
 def render_landing():

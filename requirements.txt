@@ -1,9 +1,12 @@
 # --- [웹 인터페이스 및 UI] ---
 streamlit                # 웹 대시보드 및 사용자 인터페이스 구성
 
+# --- [환경 변수 및 설정 관리] ---
+python-dotenv           # .env 파일로부터 환경 변수 로드 (로컬 개발용)
+
 # --- [외부 LLM API 연동] ---
 openai                   # OpenAI (GPT) API 사용
-google-generativeai      # Google Gemini API 사용
+groq                     # Groq API 사용
 
 # --- [언어 감지 및 번역 파이프라인] ---
 langdetect               # 입력 텍스트의 언어(한국어/일본어 등) 판별

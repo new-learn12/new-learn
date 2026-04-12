@@ -17,10 +17,9 @@ except ImportError:
     raise ImportError("langdetect 라이브러리가 필요합니다. pip install langdetect 실행해주세요.")
 
 try:
-    import google.generativeai as genai
+    from groq import Groq
 except ImportError:
-    raise ImportError("google-generativeai 라이브러리가 필요합니다. pip install google-generativeai 실행해주세요.")
-
+    raise ImportError("groq 라이브러리가 필요합니다. (pip install groq)")
 
 class Language(str, Enum):
     """지원 언어 코드 (ISO 639-1)"""
@@ -62,15 +61,13 @@ class HybridLanguageDetector:
     KATAKANA_PATTERN = re.compile(r"[\u30a0-\u30ff]")
     KANJI_PATTERN = re.compile(r"[\u4e00-\u9fff]")
     
-    def __init__(self, gemini_api_key: str | None = None):
+    def __init__(self, groq_api_key: str | None = None):
         """
         Args:
-            gemini_api_key: Gemini API 키 (없으면 2단계까지만 동작)
+            groq_api_key: Groq API 키 (없으면 2단계까지만 동작)
         """
-        self.gemini_api_key = gemini_api_key
-        if gemini_api_key:
-            genai.configure(api_key=gemini_api_key)
-        self.model = genai.GenerativeModel("gemini-1.5-flash") if gemini_api_key else None
+        if groq_api_key:
+            self.client = Groq(api_key=groq_api_key)
     
     def _step1_regex_detection(self, text: str) -> Tuple[Language | None, float]:
         """
@@ -175,10 +172,7 @@ class HybridLanguageDetector:
         Returns:
             (감지된 언어, 신뢰도) 튜플
         """
-        if not self.model:
-            # Gemini API 키가 없으면 OTHER 반환
-            return Language.OTHER, 0.0
-        
+
         try:
             prompt = (
                 f"다음 텍스트의 언어를 ISO 639-1 포맷(예: ko, ja, en, zh)으로 판별해줘. "
@@ -186,8 +180,18 @@ class HybridLanguageDetector:
                 f"텍스트: {text}"
             )
             
-            response = self.model.generate_content(prompt)
-            response_text = response.text.strip()
+            response = self.client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[{"role": "user", "content": prompt}],
+                response_format={"type": "json_object"}  # JSON Mode 그대로 지원
+            )
+            content = response.choices[0].message.content
+            response_text = content.strip() if content else ""
+
+            # 만약 response_text가 비어있다면 바로 Fallback으로 넘어가도록 처리
+            if not response_text:
+                print("[Warning] API 응답 내용이 비어있습니다.")
+                return Language.OTHER, 0.0
             
             # JSON 파싱 시도
             import json
@@ -246,7 +250,7 @@ class HybridLanguageDetector:
             )
         
         # Gemini 강제 모드
-        if force_gemini and self.model:
+        if force_gemini:
             language, confidence = self._step3_gemini_fallback(text)
             return DetectionResult(
                 language=language,
@@ -281,7 +285,7 @@ class HybridLanguageDetector:
             or conf_ld <= 0.7  # langdetect 신뢰도 낮음 (모호함)
         )
         
-        if should_use_gemini and self.model:
+        if should_use_gemini:
             lang_gemini, conf_gemini = self._step3_gemini_fallback(text)
             return DetectionResult(
                 language=lang_gemini,
@@ -317,11 +321,15 @@ class HybridLanguageDetector:
 # ─── 테스트 코드 ───
 if __name__ == "__main__":
     import os
+    from dotenv import load_dotenv
     
+    if os.path.exists(".env"):
+        load_dotenv()
+
     # Gemini API 키 로드 (환경변수에서)
-    api_key = os.getenv("GEMINI_API_KEY")
+    api_key = os.getenv("GROQ_API_KEY")
     
-    detector = HybridLanguageDetector(gemini_api_key=api_key)
+    detector = HybridLanguageDetector(groq_api_key=api_key)
     
     # 테스트 케이스
     test_texts = [
