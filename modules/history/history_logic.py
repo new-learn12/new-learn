@@ -9,6 +9,8 @@ call_llm() 함수 내 역사(歷史) 과목 분기에 연결하면 됩니다.
 """
 
 import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
 import re
 import torch
 from transformers import pipeline
