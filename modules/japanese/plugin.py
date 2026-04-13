@@ -10,7 +10,7 @@ def _get_api_key() -> str:
 
 
 def get_japanese_bot_result(history):
-    """일본어 전용 Groq API 호출 로직 (B 파일의 call_llm 내부 로직)"""
+    """일본어 전용 LLM API 호출 로직 (B 파일의 call_llm 내부 로직)"""
     if os.path.exists(".env"):
         load_dotenv()
     api_key = _get_api_key()
