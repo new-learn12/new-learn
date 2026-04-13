@@ -114,12 +114,12 @@ def load_en_ko_pipeline():
 class AsymmetricTranslator:
     """비대칭 번역 파이프라인 - Task A/B에 따라 다른 로직 적용"""
 
-    def __init__(self, groq_api_key: str):
+    def __init__(self, api_key: str):
         """
         Args:
-            groq_api_key: Gemini API 키
+            api_key: LLM API 키
         """
-        self.client = Groq(api_key=groq_api_key)
+        self.client = Groq(api_key=api_key)
 
         # 지연 로딩(Lazy Loading)을 위한 파이프라인 변수 초기화
         self._ja_en_pipeline = None
@@ -520,7 +520,7 @@ if __name__ == "__main__":
 
         # 구조 검증
         try:
-            translator = AsymmetricTranslator(groq_api_key="dummy_key")
+            translator = AsymmetricTranslator(api_key="dummy_key")
             print("✅ 모듈 import 및 클래스 초기화 성공")
 
             # Task 타입 검증
@@ -551,7 +551,7 @@ if __name__ == "__main__":
 
         exit(0)
 
-    translator = AsymmetricTranslator(groq_api_key=api_key)
+    translator = AsymmetricTranslator(api_key=api_key)
 
     # Task A 테스트 (일본어 → 한국어)
     print("\n[Task A: 일본어 → 한국어]")

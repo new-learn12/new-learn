@@ -63,13 +63,13 @@ class HybridLanguageDetector:
     KATAKANA_PATTERN = re.compile(r"[\u30a0-\u30ff]")
     KANJI_PATTERN = re.compile(r"[\u4e00-\u9fff]")
 
-    def __init__(self, groq_api_key: str | None = None):
+    def __init__(self, api_key: str | None = None):
         """
         Args:
-            groq_api_key: Groq API 키 (없으면 2단계까지만 동작)
+            api_key: LLM API 키 (없으면 2단계까지만 동작)
         """
-        if groq_api_key:
-            self.client = Groq(api_key=groq_api_key)
+        if api_key:
+            self.client = Groq(api_key=api_key)
 
     def _step1_regex_detection(
             self, text: str) -> Tuple[Language | None, float]:
@@ -333,7 +333,7 @@ if __name__ == "__main__":
     # API 키 로드 (환경변수에서)
     api_key = os.getenv("OPENAI_API_KEY")
 
-    detector = HybridLanguageDetector(groq_api_key=api_key)
+    detector = HybridLanguageDetector(api_key=api_key)
 
     # 테스트 케이스
     test_texts = [

@@ -6,6 +6,7 @@ from modules.japanese import AsymmetricTranslator, JapaneseTextProcessor, TaskTy
 
 
 def _get_api_key() -> str:
+    """서비스별 클라이언트와 무관하게 통합 환경변수에서 API 키를 읽는다."""
     return os.getenv("OPENAI_API_KEY", "").strip()
 
 
