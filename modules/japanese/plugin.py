@@ -127,7 +127,7 @@ def format_japanese_answer_to_html(answer_str: str) -> str:
 
 
 def render_japanese_ui(history, render_messages_func):
-    """일본어 전용 UI 렌더링 (회화/번역 탭 분기)"""
+    """일본어 전용 UI를 렌더링하고 메인 입력창 스킵 여부를 반환합니다."""
     tab_col1, tab_col2, _ = st.columns([1, 1, 4])
 
     # 탭 버튼 UI
@@ -175,6 +175,7 @@ def render_japanese_ui(history, render_messages_func):
 
 
 def render_translation_mode():
+    """번역 모드 입력/실행을 처리하고 결과 영역에 삽입할 HTML을 반환합니다."""
     task_labels = {
         TaskType.KOREAN_TO_JAPANESE.value: "한국어 → 일본어",
         TaskType.JAPANESE_TO_KOREAN.value: "일본어 → 한국어",
