@@ -331,7 +331,7 @@ if __name__ == "__main__":
         load_dotenv()
 
     # API 키 로드 (환경변수에서)
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = os.getenv("LLM_API_KEY")
 
     detector = HybridLanguageDetector(api_key=api_key)
 

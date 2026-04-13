@@ -80,7 +80,7 @@ new-learn/
    2. 발급받은 키 입력
    ```text
    # .env
-   OPENAI_API_KEY={통합 API 키}
+   LLM_API_KEY={통합 API 키}
    ```
 4. 애플리케이션 실행
    ```bash

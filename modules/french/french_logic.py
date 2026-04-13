@@ -66,11 +66,11 @@ def search_hybrid(query):
 
 def get_french_bot_result(user_query):
     # 클라우드 서버(DigitalOcean)의 환경 변수에서 안전하게 키를 꺼내오는 방식
-    MY_OPENAI_KEY = os.environ.get("OPENAI_API_KEY", "").strip()
+    api_key = os.environ.get("LLM_API_KEY", "").strip()
 
     # 만약 서버에 키가 세팅 안 되어 있으면 에러 방지용 안내문 출력
-    if not MY_OPENAI_KEY:
-        return "시스템 오류: 서버에 OpenAI API 키가 설정되지 않았습니다. 관리자에게 문의하세요.", None
+    if not api_key:
+        return "시스템 오류: 서버에 LLM_API_KEY가 설정되지 않았습니다. 관리자에게 문의하세요.", None
 
     matched = search_hybrid(user_query)
 
@@ -113,7 +113,7 @@ def get_french_bot_result(user_query):
         prefix = ""
 
     try:
-        client = OpenAI(api_key=MY_OPENAI_KEY)
+        client = OpenAI(api_key=api_key)
         response = client.chat.completions.create(
             messages=[
                 {"role": "system", "content": system_prompt},

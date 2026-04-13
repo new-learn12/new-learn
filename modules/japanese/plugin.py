@@ -7,7 +7,7 @@ from modules.japanese import AsymmetricTranslator, JapaneseTextProcessor, TaskTy
 
 def _get_api_key() -> str:
     """서비스별 클라이언트와 무관하게 통합 환경변수에서 API 키를 읽는다."""
-    return os.getenv("OPENAI_API_KEY", "").strip()
+    return os.getenv("LLM_API_KEY", "").strip()
 
 
 def get_japanese_bot_result(history):
@@ -16,7 +16,7 @@ def get_japanese_bot_result(history):
         load_dotenv()
     api_key = _get_api_key()
     if not api_key:
-        return "[오류] OPENAI_API_KEY가 설정되지 않았습니다."
+        return "[오류] LLM_API_KEY가 설정되지 않았습니다."
 
     try:
         from groq import Groq
@@ -335,7 +335,7 @@ def run_translation(input_text: str, task_value: str) -> dict:
             "task": task_value,
             "original_text": input_text,
             "grammar_check": {"is_correct": False, "correction": None},
-            "translated_text": "[OPENAI_API_KEY가 설정되지 않았습니다.]",
+            "translated_text": "[LLM_API_KEY가 설정되지 않았습니다.]",
             "style_variations": {},
             "key_tokens": [],
             "pronunciation": "",

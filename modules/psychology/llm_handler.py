@@ -80,12 +80,12 @@ def get_psychology_bot_result(subject: str, history: list[dict]) -> tuple:
     app.py에서 호출하는 메인 함수.
     GitHub Models API를 통해 응답을 생성하고 HTML 문자열로 반환.
     """
-    api_key = os.getenv("OPENAI_API_KEY", "").strip()
+    api_key = os.getenv("LLM_API_KEY", "").strip()
     if not api_key:
         return (
-            "OPENAI_API_KEY 환경변수가 설정되지 않았습니다.<br>"
+            "LLM_API_KEY 환경변수가 설정되지 않았습니다.<br>"
             "<code>.env</code> 또는 배포 환경 변수에 "
-            "<code>OPENAI_API_KEY</code>를 추가해 주세요."
+            "<code>LLM_API_KEY</code>를 추가해 주세요."
         ), None
 
     # OpenAI 클라이언트 → GitHub Models 엔드포인트로 연결
