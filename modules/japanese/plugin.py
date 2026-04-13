@@ -1,7 +1,9 @@
+import json
 import os
 import streamlit as st
 from dotenv import load_dotenv
 from modules.japanese import AsymmetricTranslator, JapaneseTextProcessor, TaskType, OutputFormat
+
 
 def get_japanese_bot_result(history):
     """일본어 전용 Groq API 호출 로직 (B 파일의 call_llm 내부 로직)"""
@@ -64,20 +66,19 @@ def get_japanese_bot_result(history):
     except Exception as e:
         return f"[API 오류] {str(e)}"
 
-import json
 
 def format_japanese_answer_to_html(answer_str: str) -> str:
     """JSON 형태의 답변 문자열을 파싱하여 깔끔한 HTML로 변환합니다."""
     try:
         # JSON 문자열 파싱
         data = json.loads(answer_str)
-        
+
         # 각 필드 추출 (안전하게 가져오기 위해 get 사용)
         response = data.get("response", "")
         meaning = data.get("meaning", "")
         pronunciation = data.get("pronunciation", "")
         explanation = data.get("explanation", "")
-        
+
         # HTML 템플릿 작성 (인라인 CSS 사용)
         html_content = f"""
         <div style="padding: 16px; border: 1px solid #dbe8f7; border-radius: 12px; background-color: #f8fbff; font-family: sans-serif; line-height: 1.6;">
@@ -103,6 +104,7 @@ def format_japanese_answer_to_html(answer_str: str) -> str:
         # JSON 형식이 아닌 일반 텍스트로 왔을 경우를 대비한 예외 처리
         return f"<div style='padding: 16px;'>{answer_str}</div>"
 
+
 def render_japanese_ui(history, render_messages_func):
     """일본어 전용 UI 렌더링 (회화/번역 탭 분기)"""
     tab_col1, tab_col2, _ = st.columns([1, 1, 4])
@@ -121,7 +123,7 @@ def render_japanese_ui(history, render_messages_func):
     # 모드에 따른 렌더링 분기
     if st.session_state.jp_translation_mode:
         # 1. 위젯 영역 및 로직 처리
-        # render_translation_mode 내부에서 st.radio 등을 실행하고 
+        # render_translation_mode 내부에서 st.radio 등을 실행하고
         # 최종 '결과 HTML 문자열'만 리턴받습니다.
         result_html = render_translation_mode()
 
@@ -179,7 +181,7 @@ def render_translation_mode():
     # 3. 중요: 태스크가 변경되었다면 세션 상태를 업데이트하고 즉시 리런!
     if selected_task != st.session_state.translation_task:
         st.session_state.translation_task = selected_task
-        st.session_state.translation_result = {} # 이전 결과 삭제
+        st.session_state.translation_result = {}  # 이전 결과 삭제
 
     # 4. 입력창 처리
     placeholders = {
@@ -193,10 +195,10 @@ def render_translation_mode():
         st.session_state.translation_result = {}
         with st.spinner("번역 생성 중...💭"):
             result = run_translation(prompt, selected_task)
-            
+
             processor = get_text_processor()
             if selected_task == TaskType.KOREAN_TO_JAPANESE.value:
-                
+
                 result = processor.process_comprehensive_result(
                     result,
                     OutputFormat.HTML,
@@ -214,24 +216,28 @@ def build_translation_result_html(result: dict) -> str:
     """번역 결과를 하나의 완성된 HTML 문자열로 조립합니다."""
     if not result:
         return "<div style='color:#888; text-align:center; padding:20px;'>번역할 문장을 입력해주세요.</div>"
-    
+
     html_parts = []
-    
+
     # 1. 문법 점검 섹션 (Badge 스타일)
     grammar = result.get("grammar_check", {})
     if grammar.get("is_correct", True):
-        html_parts.append("<div style='color:#059669; background:#ecfdf5; padding:8px; border-radius:8px; margin-bottom:10px; font-size:0.9em;'>✅ 문법 점검: 정상</div>")
+        html_parts.append(
+            "<div style='color:#059669; background:#ecfdf5; padding:8px; border-radius:8px; margin-bottom:10px; font-size:0.9em;'>✅ 문법 점검: 정상</div>")
     else:
-        html_parts.append(f"<div style='color:#d97706; background:#fffbeb; padding:8px; border-radius:8px; margin-bottom:10px; font-size:0.9em;'>⚠️ 문법 점검: 오류 발견 ({grammar.get('correction', '')})</div>")
+        html_parts.append(
+            f"<div style='color:#d97706; background:#fffbeb; padding:8px; border-radius:8px; margin-bottom:10px; font-size:0.9em;'>⚠️ 문법 점검: 오류 발견 ({grammar.get('correction', '')})</div>")
 
     # 2. 메인 번역 결과 카드
     task = result.get("task")
-    
+
     # [한국어 -> 일본어]
     if task == TaskType.KOREAN_TO_JAPANESE.value:
-        translated = result.get("translated_text_ruby") or result.get("translated_text", "")
-        original = result.get("original_text_highlighted") or result.get("original_text", "")
-        
+        translated = result.get("translated_text_ruby") or result.get(
+            "translated_text", "")
+        original = result.get("original_text_highlighted") or result.get(
+            "original_text", "")
+
         html_parts.append(f"""
             <div style='padding:20px; border:1px solid #dbe8f7; border-radius:16px; background:#f8fbff; margin-bottom:15px;'>
                 <div style='font-size:1.25em; line-height:1.8; color:#1e293b;'>{translated}</div>
@@ -240,7 +246,7 @@ def build_translation_result_html(result: dict) -> str:
                 </div>
             </div>
         """)
-        
+
         # 추가 보기 (st.expander 대체)
         html_parts.append(f"""
             <details style='cursor:pointer; font-size:0.9em; color:#475569; background:#f1f5f9; padding:10px; border-radius:8px;'>
@@ -251,7 +257,7 @@ def build_translation_result_html(result: dict) -> str:
                 </div>
             </details>
         """)
-        
+
     # [일본어 -> 한국어] (이 부분이 버그의 핵심이므로 집중적으로 수정됨)
     else:
         recommended = result.get("recommended") or ""
@@ -264,7 +270,8 @@ def build_translation_result_html(result: dict) -> str:
 
         original_text = result.get("original_text")
         if original_text:
-            html_parts.append(f"<div style='margin-bottom:10px;'><strong>원문 일본어:</strong><br>{original_text}</div>")
+            html_parts.append(
+                f"<div style='margin-bottom:10px;'><strong>원문 일본어:</strong><br>{original_text}</div>")
 
         # st.expander를 대체할 추가 보기 내용 조립
         translations_html = ""
@@ -283,8 +290,9 @@ def build_translation_result_html(result: dict) -> str:
                     </div>
                 </details>
             """)
-    
+
     return "".join(html_parts)
+
 
 def get_translator():
     if "translator" in st.session_state and st.session_state.translator is not None:
