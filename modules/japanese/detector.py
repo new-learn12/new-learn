@@ -330,7 +330,7 @@ if __name__ == "__main__":
     if os.path.exists(".env"):
         load_dotenv()
 
-    # API 키 로드 (환경변수에서)
+    # API 키 로드 (환경 변수에서)
     api_key = os.getenv("LLM_API_KEY")
 
     detector = HybridLanguageDetector(api_key=api_key)
