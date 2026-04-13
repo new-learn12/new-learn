@@ -126,7 +126,7 @@ def format_japanese_answer_to_html(answer_str: str) -> str:
         return f"<div style='padding: 16px;'>{html.escape(str(answer_str))}</div>"
 
 
-def render_japanese_ui(history, render_messages_func, now_func):
+def render_japanese_ui(history, render_messages_func):
     """일본어 전용 UI 렌더링 (회화/번역 탭 분기)"""
     tab_col1, tab_col2, _ = st.columns([1, 1, 4])
 
