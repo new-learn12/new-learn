@@ -1,5 +1,6 @@
 import os
 import json
+import html
 import streamlit as st
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -7,6 +8,23 @@ from modules.japanese import AsymmetricTranslator, JapaneseTextProcessor, TaskTy
 
 GITHUB_MODELS_ENDPOINT = "https://models.inference.ai.azure.com"
 GITHUB_MODELS_MODEL = "Llama-3.3-70B-Instruct"
+
+
+def _sanitize_basic_html(text: str, allow_mark: bool = False) -> str:
+    escaped = html.escape(text or "")
+    if allow_mark:
+        escaped = escaped.replace("&lt;mark&gt;", "<mark>")
+        escaped = escaped.replace("&lt;/mark&gt;", "</mark>")
+    return escaped
+
+
+def _sanitize_ruby_html(text: str) -> str:
+    escaped = _sanitize_basic_html(text, allow_mark=True)
+    escaped = escaped.replace("&lt;ruby&gt;", "<ruby>")
+    escaped = escaped.replace("&lt;/ruby&gt;", "</ruby>")
+    escaped = escaped.replace("&lt;rt&gt;", "<rt>")
+    escaped = escaped.replace("&lt;/rt&gt;", "</rt>")
+    return escaped
 
 
 def get_japanese_bot_result(history):
@@ -77,10 +95,10 @@ def format_japanese_answer_to_html(answer_str: str) -> str:
         data = json.loads(answer_str)
 
         # 각 필드 추출 (안전하게 가져오기 위해 get 사용)
-        response = data.get("response", "")
-        meaning = data.get("meaning", "")
-        pronunciation = data.get("pronunciation", "")
-        explanation = data.get("explanation", "")
+        response = html.escape(str(data.get("response", "")))
+        meaning = html.escape(str(data.get("meaning", "")))
+        pronunciation = html.escape(str(data.get("pronunciation", "")))
+        explanation = html.escape(str(data.get("explanation", "")))
 
         # HTML 템플릿 작성 (인라인 CSS 사용)
         html_content = f"""
@@ -105,7 +123,7 @@ def format_japanese_answer_to_html(answer_str: str) -> str:
         return html_content
     except json.JSONDecodeError:
         # JSON 형식이 아닌 일반 텍스트로 왔을 경우를 대비한 예외 처리
-        return f"<div style='padding: 16px;'>{answer_str}</div>"
+        return f"<div style='padding: 16px;'>{html.escape(str(answer_str))}</div>"
 
 
 def render_japanese_ui(history, render_messages_func, now_func):
@@ -196,8 +214,8 @@ def render_translation_mode():
         st.session_state.translation_result = {}
         with st.spinner("번역 생성 중...💭"):
             result = run_translation(prompt, selected_task)
-            processor = get_text_processor()
             if selected_task == TaskType.KOREAN_TO_JAPANESE.value:
+                processor = get_text_processor()
                 result = processor.process_comprehensive_result(
                     result,
                     OutputFormat.HTML,
@@ -224,8 +242,9 @@ def build_translation_result_html(result: dict) -> str:
         html_parts.append(
             "<div style='color:#059669; background:#ecfdf5; padding:8px; border-radius:8px; margin-bottom:10px; font-size:0.9em;'>✅ 문법 점검: 정상</div>")
     else:
+        safe_correction = html.escape(str(grammar.get("correction", "")))
         html_parts.append(
-            f"<div style='color:#d97706; background:#fffbeb; padding:8px; border-radius:8px; margin-bottom:10px; font-size:0.9em;'>⚠️ 문법 점검: 오류 발견 ({grammar.get('correction', '')})</div>")
+            f"<div style='color:#d97706; background:#fffbeb; padding:8px; border-radius:8px; margin-bottom:10px; font-size:0.9em;'>⚠️ 문법 점검: 오류 발견 ({safe_correction})</div>")
 
     # 2. 메인 번역 결과 카드
     task = result.get("task")
@@ -236,12 +255,16 @@ def build_translation_result_html(result: dict) -> str:
             "translated_text_ruby") or result.get("translated_text", "")
         original = result.get(
             "original_text_highlighted") or result.get("original_text", "")
+        safe_translated = _sanitize_ruby_html(str(translated))
+        safe_original = _sanitize_basic_html(str(original), allow_mark=True)
+        safe_pronunciation = html.escape(str(result.get("pronunciation", "")))
+        safe_tokens = ", ".join(html.escape(str(t)) for t in result.get("key_tokens", []))
 
         html_parts.append(f"""
             <div style='padding:20px; border:1px solid #dbe8f7; border-radius:16px; background:#f8fbff; margin-bottom:15px;'>
-                <div style='font-size:1.25em; line-height:1.8; color:#1e293b;'>{translated}</div>
+                <div style='font-size:1.25em; line-height:1.8; color:#1e293b;'>{safe_translated}</div>
                 <div style='margin-top:10px; font-size:0.9em; color:#64748b; border-top:1px dashed #cbd5e1; padding-top:8px;'>
-                    <strong>원문:</strong> {original}
+                    <strong>원문:</strong> {safe_original}
                 </div>
             </div>
         """)
@@ -251,8 +274,8 @@ def build_translation_result_html(result: dict) -> str:
             <details style='cursor:pointer; font-size:0.9em; color:#475569; background:#f1f5f9; padding:10px; border-radius:8px;'>
                 <summary style='font-weight:bold;'>🔍 상세 분석 보기</summary>
                 <div style='margin-top:10px; padding-left:5px;'>
-                    <p><strong>발음:</strong> {result.get('pronunciation', '')}</p>
-                    <p><strong>핵심 단어:</strong> {", ".join(result.get('key_tokens', []))}</p>
+                    <p><strong>발음:</strong> {safe_pronunciation}</p>
+                    <p><strong>핵심 단어:</strong> {safe_tokens}</p>
                 </div>
             </details>
         """)
@@ -261,23 +284,25 @@ def build_translation_result_html(result: dict) -> str:
     else:
         recommended = result.get("recommended") or ""
         if recommended:
+            safe_recommended = _sanitize_basic_html(str(recommended), allow_mark=True)
             html_parts.append(f"""
                 <div style='padding:18px 20px; border:1px solid #dbe8f7; border-radius:16px; background:#f8fbff; line-height:1.7; margin-bottom:15px;'>
-                    {recommended}
+                    {safe_recommended}
                 </div>
             """)
 
         original_text = result.get("original_text")
         if original_text:
+            safe_original_text = html.escape(str(original_text))
             html_parts.append(
-                f"<div style='margin-bottom:10px;'><strong>원문 일본어:</strong><br>{original_text}</div>")
+                f"<div style='margin-bottom:10px;'><strong>원문 일본어:</strong><br>{safe_original_text}</div>")
 
         # st.expander를 대체할 추가 보기 내용 조립
         translations_html = ""
         for translation in result.get("translations", []):
-            style = translation.get("style", "")
-            method = translation.get("method", "")
-            text = translation.get("text", "")
+            style = html.escape(str(translation.get("style", "")))
+            method = html.escape(str(translation.get("method", "")))
+            text = html.escape(str(translation.get("text", "")))
             translations_html += f"<div style='margin-bottom:12px;'><strong>{method} / {style}</strong><br>{text}</div>"
 
         if translations_html:
