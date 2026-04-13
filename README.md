@@ -80,7 +80,7 @@ new-learn/
    2. 발급받은 키 입력
    ```text
    # .env
-   GROQ_API_KEY={[https://console.groq.com/keys] 에서 발급받은 API 키}
+   OPENAI_API_KEY={통합 API 키}
    ```
 4. 애플리케이션 실행
    ```bash

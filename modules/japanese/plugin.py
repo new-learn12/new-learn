@@ -5,13 +5,17 @@ from dotenv import load_dotenv
 from modules.japanese import AsymmetricTranslator, JapaneseTextProcessor, TaskType, OutputFormat
 
 
+def _get_api_key() -> str:
+    return os.getenv("OPENAI_API_KEY", "").strip()
+
+
 def get_japanese_bot_result(history):
     """일본어 전용 Groq API 호출 로직 (B 파일의 call_llm 내부 로직)"""
     if os.path.exists(".env"):
         load_dotenv()
-    api_key = os.getenv("GROQ_API_KEY")
+    api_key = _get_api_key()
     if not api_key:
-        return "[오류] GROQ_API_KEY가 설정되지 않았습니다."
+        return "[오류] OPENAI_API_KEY가 설정되지 않았습니다."
 
     try:
         from groq import Groq
@@ -301,7 +305,7 @@ def get_translator():
     if os.path.exists(".env"):
         load_dotenv()
 
-    api_key = os.getenv("GROQ_API_KEY")
+    api_key = _get_api_key()
     if not api_key:
         return None
 
@@ -330,7 +334,7 @@ def run_translation(input_text: str, task_value: str) -> dict:
             "task": task_value,
             "original_text": input_text,
             "grammar_check": {"is_correct": False, "correction": None},
-            "translated_text": "[GROQ_API_KEY가 설정되지 않았습니다.]",
+            "translated_text": "[OPENAI_API_KEY가 설정되지 않았습니다.]",
             "style_variations": {},
             "key_tokens": [],
             "pronunciation": "",

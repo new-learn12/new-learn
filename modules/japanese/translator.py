@@ -511,11 +511,11 @@ if __name__ == "__main__":
 
     if os.path.exists(".env"):
         load_dotenv()
-    api_key = os.getenv("GROQ_API_KEY")
+    api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
-        print("⚠️  GROQ_API_KEY 환경변수가 설정되지 않았습니다.")
+        print("⚠️  OPENAI_API_KEY 환경변수가 설정되지 않았습니다.")
         print("실제 API 테스트를 위해서는 다음 명령어로 설정하세요:")
-        print("$env:GROQ_API_KEY = 'your_api_key_here'")
+        print("$env:OPENAI_API_KEY = 'your_api_key_here'")
         print("\n구조 검증만 진행합니다...")
 
         # 구조 검증

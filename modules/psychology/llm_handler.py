@@ -7,6 +7,7 @@ GitHub Models는 OpenAI 호환 엔드포인트를 제공하므로 openai 라이�
     아래 _DEFAULT_MODEL 상수 또는 secrets.toml의 MODEL 값만 바꾸면 됨.
 """
 
+import os
 import re
 import streamlit as st
 from openai import OpenAI, AuthenticationError, RateLimitError
@@ -79,20 +80,18 @@ def get_psychology_bot_result(subject: str, history: list[dict]) -> tuple:
     app.py에서 호출하는 메인 함수.
     GitHub Models API를 통해 응답을 생성하고 HTML 문자열로 반환.
     """
-    # GitHub Token 로드
-    try:
-        github_token = st.secrets["GITHUB_TOKEN"]
-    except Exception:
+    api_key = os.getenv("OPENAI_API_KEY", "").strip()
+    if not api_key:
         return (
-            "GitHub Token이 설정되지 않았습니다.<br>"
-            "<code>.streamlit/secrets.toml</code>에 "
-            "<code>GITHUB_TOKEN = \"ghp_...\"</code>을 추가해 주세요."
+            "OPENAI_API_KEY 환경변수가 설정되지 않았습니다.<br>"
+            "<code>.env</code> 또는 배포 환경 변수에 "
+            "<code>OPENAI_API_KEY</code>를 추가해 주세요."
         ), None
 
     # OpenAI 클라이언트 → GitHub Models 엔드포인트로 연결
     client = OpenAI(
         base_url=GITHUB_MODELS_ENDPOINT,
-        api_key=github_token,
+        api_key=api_key,
     )
 
     model = _get_model()
