@@ -296,15 +296,22 @@ class JapaneseTextProcessor:
 
         try:
             # 번역된 텍스트에 루비 태그 추가 (일본어인 경우)
-            if 'translated_text' in result and result.get(
-                    'task') == 'ko_to_ja':
-                translated_text = result['translated_text']
-                if include_ruby:
-                    processed_result['translated_text_ruby'] = self.add_ruby_tags(
-                        translated_text, format_type
-                    )
-                else:
-                    processed_result['translated_text_ruby'] = translated_text
+            if 'translated_text' in result and result.get('task') == 'ko_to_ja':
+                base_text = result['translated_text']
+
+                # 1. 루비 태그 먼저 적용
+                ruby_text = self.add_ruby_tags(base_text)
+
+                # 2. 하이라이팅 적용 (실패 시 ruby_text 유지)
+                try:
+                    if 'key_tokens' in result and result['key_tokens']:
+                        ruby_text = self.highlight_key_tokens(
+                            ruby_text, result['key_tokens'])
+                except Exception as e:
+                    print(f"[Warning] 하이라이팅 적용 실패: {e}")
+
+                # 3. 최종 결과 저장 (UI가 이 키를 참조하도록 일치시킴)
+                result['translated_text_ruby'] = ruby_text
 
             # 스타일 변형에도 루비 태그 추가
             if 'style_variations' in result and isinstance(

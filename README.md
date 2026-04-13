@@ -20,10 +20,6 @@ new-learn/
 │       └── merge-main-pull-request.yml
 ├── app.py                 # [Main]
 ├── requirements.txt       # 프로젝트 전체 패키지 의존성 (통합 관리)
-│
-├── layouts/               # app.py에서 분리된 분야별 UI 렌더링 함수 모음
-│   └── __init__.py        
-│
 └── modules/               # [Logic] 5개 분야별 독립 비즈니스 로직 패키지
     ├── semiconductor/     # 반도체 모듈
     ├── psychology/        # 심리 모듈

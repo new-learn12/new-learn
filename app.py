@@ -30,7 +30,7 @@ SUBJECTS = [
         "name": "일본어",
         "icon": "🗾",
         "desc": "문법, 독해, 회화 표현을 단계별로 연습하고 실전 예문을 제공합니다.",
-        "welcome": "안녕하세요! <b>일본어</b> 학습봇입니다.<br>문법 설명, 회화 표현, JLPT 스타일 문제까지 도와드릴게요.",
+        "welcome": "안녕하세요 <b>일본어</b> 학습봇입니다!<br>문법, 독해, 회화 표현을 단계별로 함께 연습해요.",
     },
     {
         "name": "프랑스어",
@@ -446,7 +446,7 @@ def render_chat():
 
     if subject == "일본어":
         # 일본어 모듈은 내부에서 탭을 그리고, 번역 모드일 경우 자체 input을 쓰므로 skip_main_input 플래그를 받아옴
-        skip_main_input = render_japanese_ui(history, render_messages, now)
+        skip_main_input = render_japanese_ui(history, render_messages)
     else:
         # 심리 챗봇 파일의 예쁜 채팅창 렌더링
         st.markdown(

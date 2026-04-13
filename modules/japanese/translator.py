@@ -9,6 +9,7 @@
 
 import json
 import os
+import re
 from typing import Dict, List, Optional, Any, Literal
 from dataclasses import dataclass
 from enum import Enum
@@ -298,9 +299,9 @@ class AsymmetricTranslator:
             schema_description = """
 필수 JSON 형식:
 {
-  "is_correct": boolean (문법이 맞는지),
-  "correction": string or null (틀렸다면 수정된 한국어),
-  "translated_text": string (기본 일본어 번역),
+  "is_correct": boolean(한국어 원문의 문법 검증),
+  "correction": string or null(틀렸다면 수정된 한국어),
+  "translated_text": string (자연스러운 기본 일본어 번역문),
   "style_variations": {
     "casual": string (캐주얼한 일본어),
     "polite": string (정중한 일본어),
@@ -308,7 +309,7 @@ class AsymmetricTranslator:
     "feminine": string (여성스러운 일본어),
     "masculine": string (남성스러운 일본어)
   },
-  "key_tokens": [string] (핵심 어휘/구문 리스트),
+  "key_tokens": [string] (반드시 'translated_text' 내에 존재하는 일본어 어휘/구문과 정확히 일치하는 문자열 리스트),
   "pronunciation": string (로마자 표기, 헵번식)
 }
 """
@@ -317,6 +318,7 @@ class AsymmetricTranslator:
                 f"다음 한국어 텍스트를 일본어로 번역하고 분석해주세요.\n\n"
                 f"{schema_description}\n\n"
                 f"요구사항:\n"
+                f"- key_tokens: 반드시 일본어로 작성하세요.\n"
                 f"- is_correct: 문법이 맞는지 boolean 값\n"
                 f"- correction: 틀렸다면 수정된 한국어, 맞다면 null\n"
                 f"- translated_text: 자연스러운 일본어 번역\n"
@@ -337,11 +339,11 @@ class AsymmetricTranslator:
             response_text = content.strip() if content else ""
 
             # JSON 추출 시도 (마크다운 코드블록 제거)
-            if response_text.startswith("```json"):
-                response_text = response_text[7:]
-            if response_text.endswith("```"):
-                response_text = response_text[:-3]
-            response_text = response_text.strip()
+            json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+            if json_match:
+                response_text = json_match.group(0)
+            else:
+                raise ValueError("응답에서 JSON 구조를 찾을 수 없습니다.")
 
             result = json.loads(response_text)
 
