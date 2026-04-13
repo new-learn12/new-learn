@@ -446,7 +446,7 @@ def render_chat():
 
     if subject == "일본어":
         # 일본어 모듈은 내부에서 탭을 그리고, 번역 모드일 경우 자체 input을 쓰므로 skip_main_input 플래그를 받아옴
-        skip_main_input = render_japanese_ui(history, render_messages, now)
+        skip_main_input = render_japanese_ui(history, render_messages)
     else:
         # 심리 챗봇 파일의 예쁜 채팅창 렌더링
         st.markdown(
